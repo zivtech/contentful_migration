@@ -1,0 +1,70 @@
+{
+  "assets": [
+    {
+      "sys": {
+        "id": "img1",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Architecture diagram"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/img1/abc/diagram.png",
+            "details": {
+              "size": 68,
+              "image": { "width": 1, "height": 1 }
+            },
+            "fileName": "diagram.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    },
+    {
+      "sys": {
+        "id": "img2",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Architecture diagram (re-uploaded)"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/img2/def/diagram-copy.png",
+            "details": {
+              "size": 68,
+              "image": { "width": 1, "height": 1 }
+            },
+            "fileName": "diagram-copy.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    },
+    {
+      "sys": {
+        "id": "img3",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Brand logo"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/img3/ghi/logo.png",
+            "details": {
+              "size": 70,
+              "image": { "width": 1, "height": 1 }
+            },
+            "fileName": "logo.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    }
+  ]
+}

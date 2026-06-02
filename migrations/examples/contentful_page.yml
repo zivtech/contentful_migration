@@ -1,0 +1,50 @@
+# PATTERN: node + multi-ref sections + seo->metatag IN-HOST + path alias. Source: 017.
+# Top of the (acyclic) page subtree -> migrates after all its section/component children.
+id: contentful_page
+label: 'Contentful page -> node'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: page
+  ids:
+    sys_id:
+      type: string
+process:
+  title: title
+  # slug -> Drupal path alias
+  'path/alias':
+    plugin: skip_on_empty
+    method: process
+    source: slug
+  # multi-value paragraph reference (core #2890844: migration_lookup + extract)
+  field_sections:
+    plugin: sub_process
+    source: sections                     # raw [{sys:{id}}, …] left by the source plugin
+    process:
+      ids:
+        plugin: migration_lookup
+        migration: [contentful_section_grid, contentful_fifty_fifty, contentful_text_section, contentful_wide_image]
+        source: sys/id
+      target_id:
+        plugin: extract
+        source: '@ids'
+        index: [0]
+      target_revision_id:
+        plugin: extract
+        source: '@ids'
+        index: [1]
+  # seo component mapped to metatag fields ON THE HOST (no standalone seo migration)
+  field_metatags:
+    plugin: contentful_seo_to_metatag    # builds the metatag serialized value from the linked seo entry
+    source: seo
+destination:
+  plugin: 'entity:node'
+  default_bundle: page
+migration_dependencies:
+  required:
+    - contentful_section_grid
+    - contentful_fifty_fifty
+    - contentful_text_section
+    - contentful_wide_image

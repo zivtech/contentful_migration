@@ -1,0 +1,31 @@
+# Asset -> image Media migration, exercised by ContentfulAssetMigrationTest.
+# Proves the real run of contentful_media_bundle (MIME -> bundle) and
+# contentful_asset_to_media (local-staged bytes -> deduped managed file). Scoped
+# to image assets so a single source field (field_media_image) suffices; the
+# MIME map's pdf/video/audio branches are covered by the bundle unit test.
+id: cf_media
+label: 'Test: Contentful assets -> image media'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'public://cf-media-export.json'
+  selector: assets
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  bundle:
+    plugin: contentful_media_bundle
+    source: file/contentType
+  name: file/fileName
+  field_media_image/target_id:
+    plugin: contentful_asset_to_media
+    source: file/url
+    # Read the pre-staged local bytes (no network in the kernel test); the
+    # remote-fetch branch is the production fallback.
+    local_source_dir: 'public://cf-assets'
+    destination: 'public://contentful'
+  field_media_image/alt: title
+destination:
+  plugin: 'entity:media'

@@ -1,0 +1,45 @@
+# PATTERN: two-pass body — PASS B (resolve embeds). Source: synthetic fixture.
+# Runs AFTER Pass A + every embed-target migration. ContentfulRichText walks the AST and
+# resolves embeds via the migrate maps: embedded-asset-block -> <drupal-media>,
+# embedded-entry-block -> <drupal-entity-embed>, entry-hyperlink -> internal:/node/NID.
+# Unknown node types are logged (CatchAll), never silently dropped. Writes back to the
+# SAME node (same source ids) so it updates rather than creating duplicates.
+id: contentful_blog_post_body
+label: 'Contentful blogPost body (Pass B: resolve embeds)'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  nid:
+    plugin: migration_lookup
+    migration: contentful_blog_post       # target the node created in Pass A
+    source: sys_id
+  'body/value':
+    plugin: contentful_rich_text           # AST -> HTML + embed token resolution
+    source: body
+    # ContentfulEmbedResolver resolves each embed's sys.id via these migrations'
+    # maps (first hit wins), then loads the entity for its UUID. linkType ->
+    # ordered {migration, entity_type} candidates. Must cover every embed target.
+    embed_migrations:
+      Entry:
+        - { migration: contentful_callout_card, entity_type: paragraph }
+      Asset:
+        - { migration: contentful_media, entity_type: media }
+  'body/format':
+    plugin: default_value
+    default_value: full_html
+destination:
+  plugin: 'entity:node'
+  default_bundle: blog_post
+migration_dependencies:
+  required:
+    - contentful_blog_post     # Pass A
+    - contentful_media         # embedded-asset-block target (doc1)
+    - contentful_callout_card  # embedded-entry-block target (callout1)

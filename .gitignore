@@ -1,0 +1,14 @@
+/vendor/
+.DS_Store
+
+# Internal development scaffolding — kept locally, excluded from the contrib repo.
+# (Session handoff notes, corpus-profiling dev validators with non-portable
+# paths, the one-off Rich Text spike, and analyzer/planner skill-eval goldens.)
+/HANDOFF.md
+/tools/
+/spike/
+/tests/fixtures/README.md
+/tests/fixtures/expected-analysis.md
+/tests/fixtures/expected-analysis-017.md
+/tests/fixtures/expected-mapping.yml
+/tests/fixtures/expected-mapping-017.yml

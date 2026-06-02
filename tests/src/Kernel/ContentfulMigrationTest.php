@@ -1,0 +1,134 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\contentful_migration\Kernel;
+
+use Drupal\contentful_migration\Plugin\migrate\process\ContentfulRichText;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Entity\FilterFormat;
+use Drupal\node\Entity\NodeType;
+use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+
+/**
+ * End-to-end: a real migrate run resolves a Rich Text embed via the migrate map.
+ *
+ * This is the test the unit tests can't be: it exercises plugin discovery
+ * (`#[MigrateSource]` / `#[MigrateProcess]`), `ContentfulRichText::create()`
+ * wiring through the real container (`migrate.lookup` + `entity_type.manager`),
+ * and a genuine two-pass migration where Pass B resolves an `embedded-entry`
+ * against the id-map populated by Pass A.
+ *
+ * Truth boundary: the embed target is migrated to a *node* here, as a stand-in
+ * for the entity-type-agnostic resolver path (the resolver returns whatever
+ * entity_type the matched candidate names). Paragraph / Media integration is
+ * NOT proven by this test — node keeps the harness to core modules.
+ *
+ * @group contentful_migration
+ */
+class ContentfulMigrationTest extends MigrateTestBase {
+
+  protected static $modules = [
+    'system',
+    'user',
+    'field',
+    'text',
+    'filter',
+    'node',
+    'migrate',
+    'contentful_migration',
+    'contentful_migration_test',
+  ];
+
+  protected function setUp(): void {
+    parent::setUp();
+
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('node');
+    // node_access is a plain schema table (not entity schema); node save/update
+    // writes grants to it, so it must exist or the Pass-B update errors.
+    $this->installSchema('node', ['node_access']);
+    $this->installConfig(['field', 'node', 'filter']);
+
+    // The Pass-B body uses format `full_html`; create it.
+    FilterFormat::create(['format' => 'full_html', 'name' => 'Full HTML'])->save();
+
+    // Destination bundles + the standard body field on blog_post.
+    NodeType::create(['type' => 'card', 'name' => 'Card'])->save();
+    NodeType::create(['type' => 'blog_post', 'name' => 'Blog Post'])->save();
+
+    // Standard body field on blog_post (node_add_body_field() is deprecated in
+    // 11.3, so create the storage + instance explicitly).
+    FieldStorageConfig::create([
+      'field_name' => 'body',
+      'entity_type' => 'node',
+      'type' => 'text_with_summary',
+    ])->save();
+    FieldConfig::create([
+      'field_name' => 'body',
+      'entity_type' => 'node',
+      'bundle' => 'blog_post',
+      'label' => 'Body',
+    ])->save();
+
+    // Stage the export where the migrations' `public://` source path resolves.
+    $fileSystem = $this->container->get('file_system');
+    $publicDir = 'public://';
+    $fileSystem->prepareDirectory($publicDir, FileSystemInterface::CREATE_DIRECTORY);
+    file_put_contents(
+      'public://cf-export.json',
+      file_get_contents(__DIR__ . '/../../fixtures/synthetic-contentful-export.json'),
+    );
+  }
+
+  /**
+   * Cheap insurance: the process plugin builds through the real container.
+   * If this fails, the bug is in create()/DI wiring, not the migrate run.
+   */
+  public function testProcessPluginBuildsViaContainer(): void {
+    $plugin = $this->container->get('plugin.manager.migrate.process')->createInstance(
+      'contentful_rich_text',
+      ['embed_migrations' => ['Entry' => [['migration' => 'cf_card', 'entity_type' => 'node']]]],
+    );
+    $this->assertInstanceOf(ContentfulRichText::class, $plugin);
+  }
+
+  /**
+   * A real migration completes and the embed resolves to the migrated node.
+   */
+  public function testEndToEndEmbedResolves(): void {
+    $this->executeMigrations(['cf_card', 'cf_blog', 'cf_blog_body']);
+
+    $lookup = $this->container->get('migrate.lookup');
+    $nodeStorage = $this->container->get('entity_type.manager')->getStorage('node');
+
+    // Embed target: calloutCard `callout1` -> a card node. Derive its UUID via
+    // the same lookup() contract the resolver uses (a second proof of it).
+    $cardResult = $lookup->lookup('cf_card', ['callout1']);
+    $this->assertNotEmpty($cardResult, 'calloutCard migrated to a node.');
+    $cardFirst = reset($cardResult);
+    $cardNode = $nodeStorage->load(reset($cardFirst));
+    $this->assertNotNull($cardNode, 'The migrated card node loads.');
+    $cardUuid = $cardNode->uuid();
+
+    // Host: blogPost `post1` -> a blog_post node, body set in Pass B.
+    $blogResult = $lookup->lookup('cf_blog', ['post1']);
+    $this->assertNotEmpty($blogResult, 'blogPost migrated to a node.');
+    $blogFirst = reset($blogResult);
+    $blogNode = $nodeStorage->load(reset($blogFirst));
+    $this->assertNotNull($blogNode, 'The migrated blog node loads.');
+
+    $body = (string) $blogNode->get('body')->value;
+    $this->assertStringContainsString('data-entity-type="node"', $body, 'Embed resolved to a node entity.');
+    $this->assertStringContainsString(
+      'data-entity-uuid="' . $cardUuid . '"',
+      $body,
+      'Embed token references the migrated card node by its real UUID.',
+    );
+    // The library default Contentful-id placeholder must be gone.
+    $this->assertStringNotContainsString('Entry#', $body);
+  }
+
+}

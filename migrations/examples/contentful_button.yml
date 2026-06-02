@@ -1,0 +1,23 @@
+# PATTERN: leaf Paragraph bundle (no child references). Source: 017.
+# destination entity_reference_revisions returns target_id + target_revision_id
+# so parents (column, list) can reference it.
+id: contentful_button
+label: 'Contentful button -> Paragraph'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: button          # checker reads this for coverage
+  ids:
+    sys_id:
+      type: string
+process:
+  field_label: label
+  field_url: to                 # Symbol URL -> link field
+  field_external: external
+destination:
+  plugin: 'entity_reference_revisions'
+  default_bundle: button
+migration_dependencies:
+  required: []

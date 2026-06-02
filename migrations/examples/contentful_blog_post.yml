@@ -1,0 +1,48 @@
+# PATTERN: two-pass body — PASS A (entities first). Source: synthetic fixture.
+# blogPost.body is RichText with has_embeds:true (embedded-asset-block doc1,
+# embedded-entry-block callout1, entry-hyperlink post2). The body is NOT set here —
+# it can't be, because the embedded entities/assets may not exist yet. Pass B sets it.
+id: contentful_blog_post
+label: 'Contentful blogPost -> node (Pass A: no body)'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US                 # base-language pass
+  ids:
+    sys_id:
+      type: string
+process:
+  title: title
+  'path/alias': slug
+  field_hero_image:
+    plugin: migration_lookup
+    migration: contentful_media
+    source: heroImage/sys/id    # nested key into the raw single Link
+  field_sections:               # multi-value paragraph refs (core #2890844)
+    plugin: sub_process
+    source: sections            # raw [{sys:{id}}, …] left by the source plugin
+    process:
+      ids:                      # migration_lookup on a paragraph returns [id, revision_id]
+        plugin: migration_lookup
+        migration: [contentful_hero_section, contentful_callout_card]
+        source: sys/id          # nested key into each link element
+      target_id:
+        plugin: extract
+        source: '@ids'
+        index: [0]
+      target_revision_id:
+        plugin: extract
+        source: '@ids'
+        index: [1]
+  # body intentionally omitted in Pass A (has_embeds: true) -> set in contentful_blog_post_body
+destination:
+  plugin: 'entity:node'
+  default_bundle: blog_post
+migration_dependencies:
+  required:
+    - contentful_media
+    - contentful_hero_section
+    - contentful_callout_card

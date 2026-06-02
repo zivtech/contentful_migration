@@ -1,0 +1,23 @@
+{
+    "name": "drupal/contentful_migration",
+    "description": "Config-driven migration of a Contentful space export into Drupal, with Migrate API source and process plugins for Rich Text, assets, and reference resolution.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "homepage": "https://www.drupal.org/project/contentful_migration",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/contentful_migration",
+        "source": "https://git.drupalcode.org/project/contentful_migration"
+    },
+    "require": {
+        "php": ">=8.3",
+        "contentful/rich-text": "^4.0"
+    },
+    "suggest": {
+        "contentful/contentful": "Content Delivery API SDK (^7.1) — only needed for live-fetch mode instead of consuming a contentful-export JSON dump.",
+        "drupal/graphql_compose": "Schema-first GraphQL for decoupled mode (closest to Contentful's DX).",
+        "drupal/next": "Next.js for Drupal companion — decoupled mode when the existing frontend is Next.js.",
+        "drupal/decoupled_router": "Path/alias resolution for SPA routing in decoupled/semi-decoupled mode.",
+        "drupal/jsonapi_extras": "Clean JSON:API resource names/field aliases for decoupled mode.",
+        "drupal/geofield": "Required only if the source space uses Contentful Location fields."
+    }
+}

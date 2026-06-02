@@ -1,0 +1,20 @@
+# Embed-target migration: calloutCard entry -> a `card` node. (Node is a
+# stand-in for the entity-agnostic resolver path; see the kernel test docblock.)
+id: cf_card
+label: 'Test: Contentful calloutCard -> card node'
+source:
+  plugin: contentful_export
+  path: 'public://cf-export.json'
+  selector: entries
+  content_type: calloutCard
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: card
+  title: heading
+destination:
+  plugin: 'entity:node'

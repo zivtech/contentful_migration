@@ -1,0 +1,10 @@
+name: 'Contentful Migration Test'
+type: module
+description: 'Discoverable test migrations + fixtures for contentful_migration kernel tests. Not for production.'
+package: Testing
+core_version_requirement: ^11
+hidden: true
+dependencies:
+  - contentful_migration:contentful_migration
+  - drupal:node
+  - drupal:migrate

@@ -1,0 +1,35 @@
+# PATTERN: i18n translation pass (migrate-native). Source: synthetic fixture (en-US + es-MX).
+# Attaches the es-MX field-level values to the EXISTING en-US node (no new nid) via
+# translations: true + migration_lookup back to the base migration.
+id: contentful_blog_post_es
+label: 'Contentful blogPost es-MX translation'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: blogPost
+  locale: es-MX                 # pull the es-MX field values
+  ids:
+    sys_id:
+      type: string
+process:
+  nid:
+    plugin: migration_lookup
+    migration: contentful_blog_post     # bind to the base en-US node
+    source: sys_id
+  langcode:
+    plugin: default_value
+    default_value: es
+  content_translation_source:
+    plugin: default_value
+    default_value: en
+  title: title                          # es-MX value
+  # body (es-MX) also has_embeds in principle -> a *_body_es Pass B would follow the same shape
+destination:
+  plugin: 'entity:node'
+  default_bundle: blog_post
+  translations: true
+migration_dependencies:
+  required:
+    - contentful_blog_post

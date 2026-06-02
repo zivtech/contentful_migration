@@ -1,0 +1,23 @@
+name: Contentful Migration
+type: module
+description: 'Config-driven migration of a Contentful space export into Drupal: Migrate API source and process plugins for Rich Text AST, asset-to-Media, and reference/embed resolution.'
+package: Migration
+core_version_requirement: ^11
+# The only hard CODE dependency is core Migrate: the source plugin extends core
+# SourcePluginBase (migrations are discovered from the `migrations/` dir, core —
+# not migrate_plus), and reference/embed resolution is idiomatic migration_lookup.
+# Everything else is situational and enabled per-space-mapping or per-mode, NOT
+# for every install, so a node-only decoupled migration needs none of them:
+#   - migrate_plus / migrate_tools   — config-entity migrations + drush commands
+#   - paragraphs + entity_reference_revisions — only when a space maps components
+#     to Paragraph bundles (the analyzer decides this per content type)
+#   - media + image + file (all core) — only for asset -> Media migrations; the
+#     ContentfulAssetToMedia/ContentfulMediaBundle plugins are self-contained and
+#     do NOT need migrate_file_to_media (that is a Drupal-to-Drupal tool)
+#   - jsonapi_extras / decoupled_router / graphql_compose / next / layout_builder
+#     — presentation-mode modules, enabled by the relevant mode profile
+# These belong in composer.json `suggest`; enable them per the approved mapping.
+dependencies:
+  - migrate:migrate
+# PHP library deps (contentful/rich-text, optionally contentful/contentful) are declared
+# in this module's composer.json, not here.

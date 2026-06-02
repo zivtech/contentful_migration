@@ -1,0 +1,41 @@
+# PATTERN: nested Paragraph + MULTI-VALUE reference (core #2890844 workaround). Source: 017.
+# column.content is Array<Link Entry> -> many child paragraphs. The source plugin leaves
+# the raw link array; sub_process iterates it and resolves each ref idiomatically with
+# migration_lookup (a paragraph map returns [id, revision_id]) + extract.
+id: contentful_column
+label: 'Contentful column -> Paragraph (nested)'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: column
+  ids:
+    sys_id:
+      type: string
+process:
+  field_content:
+    plugin: sub_process                 # <-- #2890844 workaround
+    source: content                     # raw [{sys:{id}}, …] left by the source plugin
+    process:
+      ids:
+        plugin: migration_lookup
+        migration: [contentful_button, contentful_list, contentful_center_aligned_text, contentful_video]
+        source: sys/id
+      target_id:
+        plugin: extract
+        source: '@ids'
+        index: [0]
+      target_revision_id:
+        plugin: extract
+        source: '@ids'
+        index: [1]
+destination:
+  plugin: 'entity_reference_revisions'
+  default_bundle: column
+# Children must migrate first (leaf-first dependency_order).
+migration_dependencies:
+  required:
+    - contentful_media
+    - contentful_button
+    # also: contentful_list, contentful_center_aligned_text, contentful_video

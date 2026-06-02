@@ -1,0 +1,47 @@
+# PATTERN: asset -> image Media entity (self-contained staging + hash dedupe;
+# NOT migrate_file_to_media — that is a Drupal-to-Drupal tool). Source: 017.
+# Leaf of the dependency graph — runs first; everything else depends on it.
+#
+# SCOPE: this is the IMAGE-family migration. A single media migration writes one
+# fixed source field (`field_media_image`, which exists only on the `image`
+# bundle), so it can only ingest image assets. For a space that also has PDFs /
+# video / audio, the planner emits PARALLEL per-bundle migrations of this exact
+# shape — `contentful_document` writing `field_media_document`, `contentful_video`
+# writing `field_media_video`, etc. (see contentful-migration-planner: "one
+# image-only migration per source field; mixed-bundle spaces split per bundle").
+# contentful_media_bundle still resolves the bundle from MIME so each migration
+# asserts its family (here every image/* MIME -> `image`); a real per-space build
+# pairs it with a MIME filter so only the matching family reaches this migration.
+id: contentful_media
+label: 'Contentful image assets to Media'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: assets          # iterate the assets[] array
+  # contentful_export resolves fields.file.<locale> to the `file` object and
+  # exposes sys.id as the id; read its members with stock nested-source keys.
+  ids:
+    sys_id:
+      type: string
+process:
+  # contentful_media_bundle derives the media bundle from MIME. Here it resolves
+  # every image/* MIME to `image`; the parallel per-bundle migrations rely on it
+  # returning document / video / audio for their own families.
+  bundle:
+    plugin: contentful_media_bundle      # provided by contentful_migration: MIME -> media bundle
+    source: file/contentType
+  name: file/fileName
+  field_media_image/target_id:
+    # provided by contentful_migration: reads local-staged bytes (or fetches the
+    # CDN URL) into a managed file, deduped by content hash. NOT migrate_file_to_media
+    # (that is a Drupal-to-Drupal tool; see the plugin docblock).
+    plugin: contentful_asset_to_media
+    source: file/url
+    local_source_dir: 'private://contentful/assets'  # where contentful-export --download-assets staged files
+    destination: 'public://contentful'
+  field_media_image/alt: title
+destination:
+  plugin: 'entity:media'
+migration_dependencies:
+  required: []

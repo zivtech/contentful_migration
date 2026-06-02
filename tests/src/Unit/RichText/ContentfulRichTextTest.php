@@ -1,0 +1,147 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\contentful_migration\Unit\RichText;
+
+use Drupal\contentful_migration\Plugin\migrate\process\ContentfulRichText;
+use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
+use Drupal\migrate\MigrateExecutableInterface;
+use Drupal\migrate\Row;
+use Drupal\Tests\UnitTestCase;
+use Psr\Log\AbstractLogger;
+
+/**
+ * @coversDefaultClass \Drupal\contentful_migration\Plugin\migrate\process\ContentfulRichText
+ * @group contentful_migration
+ */
+class ContentfulRichTextTest extends UnitTestCase {
+
+  /**
+   * Real embedded-entry sys.id present in the 059 fixture AST.
+   */
+  public const REAL_ENTRY_SYS_ID = '45mD46Irkt50j4i2IqcSa2';
+
+  private function makeLogger(): AbstractLogger {
+    return new class extends AbstractLogger {
+      public array $records = [];
+      public function log($level, string|\Stringable $message, array $context = []): void {
+        // Interpolate the @placeholders for easy assertion.
+        $msg = (string) $message;
+        foreach ($context as $k => $v) {
+          $msg = str_replace($k, (string) $v, $msg);
+        }
+        $this->records[] = $level . ': ' . $msg;
+      }
+    };
+  }
+
+  private function makePlugin(ContentfulEmbedResolverInterface $resolver, $logger): ContentfulRichText {
+    return new ContentfulRichText([], 'contentful_rich_text', [], $resolver, $logger);
+  }
+
+  private function transform(ContentfulRichText $plugin, array $ast): string {
+    return $plugin->transform(
+      $ast,
+      $this->createMock(MigrateExecutableInterface::class),
+      $this->createMock(Row::class),
+      'body/value',
+    );
+  }
+
+  /**
+   * The real embedded entry from corpus 059 resolves to a Drupal embed token,
+   * and the library's default `<div>Entry#ID</div>` placeholder is gone.
+   *
+   * @covers ::transform
+   */
+  public function testResolvesEmbeddedEntryFromRealAst(): void {
+    $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-059.json'), TRUE);
+    $resolver = new class implements ContentfulEmbedResolverInterface {
+      public function resolve(string $sysId, string $linkType): ?array {
+        return $sysId === ContentfulRichTextTest::REAL_ENTRY_SYS_ID
+          ? ['entity_type' => 'paragraph', 'uuid' => 'uuid-callout-1']
+          : NULL;
+      }
+    };
+
+    $html = $this->transform($this->makePlugin($resolver, $this->makeLogger()), $ast);
+
+    $this->assertStringContainsString(
+      '<drupal-entity-embed data-entity-type="paragraph" data-entity-uuid="uuid-callout-1">',
+      $html,
+      'Embedded entry should resolve to a Drupal entity embed token.',
+    );
+    $this->assertStringNotContainsString('<div>Entry#', $html, 'The library default placeholder must be overridden.');
+  }
+
+  /**
+   * Unknown node types are logged (visible), not silently dropped.
+   *
+   * @covers ::transform
+   */
+  public function testLogsUnknownNodeType(): void {
+    $logger = $this->makeLogger();
+    $resolver = new class implements ContentfulEmbedResolverInterface {
+      public function resolve(string $sysId, string $linkType): ?array {
+        return NULL;
+      }
+    };
+    $ast = [
+      'nodeType' => 'document',
+      'data' => [],
+      'content' => [
+        ['nodeType' => 'mystery-widget', 'data' => [], 'content' => []],
+        ['nodeType' => 'paragraph', 'data' => [], 'content' => [
+          ['nodeType' => 'text', 'value' => 'hi', 'marks' => [], 'data' => []],
+        ]],
+      ],
+    ];
+
+    $this->transform($this->makePlugin($resolver, $logger), $ast);
+
+    $found = array_filter($logger->records, fn($r) => str_contains($r, 'mystery-widget'));
+    $this->assertNotEmpty($found, 'An unknown node type must be logged, not silently dropped.');
+  }
+
+  /**
+   * An unresolvable embed (not yet migrated) logs and emits nothing.
+   *
+   * @covers ::transform
+   */
+  public function testUnresolvedEmbedLogsAndOmits(): void {
+    $logger = $this->makeLogger();
+    $resolver = new class implements ContentfulEmbedResolverInterface {
+      public function resolve(string $sysId, string $linkType): ?array {
+        return NULL;
+      }
+    };
+    $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-059.json'), TRUE);
+
+    $html = $this->transform($this->makePlugin($resolver, $logger), $ast);
+
+    $this->assertStringNotContainsString('drupal-entity-embed', $html, 'Unresolved embed must emit nothing.');
+    $this->assertNotEmpty(
+      array_filter($logger->records, fn($r) => str_contains($r, 'Unresolved embedded entry')),
+      'Unresolved embed must be logged.',
+    );
+  }
+
+  /**
+   * Non-document input degrades to an empty string.
+   *
+   * @covers ::transform
+   */
+  public function testEmptyOnNonDocument(): void {
+    $plugin = $this->makePlugin(
+      new class implements ContentfulEmbedResolverInterface {
+        public function resolve(string $sysId, string $linkType): ?array {
+          return NULL;
+        }
+      },
+      $this->makeLogger(),
+    );
+    $this->assertSame('', $this->transform($plugin, ['nodeType' => 'text', 'value' => 'x']));
+  }
+
+}

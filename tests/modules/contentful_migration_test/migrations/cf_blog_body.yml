@@ -1,0 +1,37 @@
+# Pass B: resolve the blogPost body embeds onto the SAME node (nid via lookup).
+# ContentfulRichText resolves embedded-entry callout1 via the cf_card map to a
+# <drupal-entity-embed> token (ContentfulEmbedResolver + migrate.lookup).
+id: cf_blog_body
+label: 'Test: Contentful blogPost body (Pass B: resolve embeds)'
+source:
+  plugin: contentful_export
+  path: 'public://cf-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  nid:
+    plugin: migration_lookup
+    migration: cf_blog
+    source: sys_id
+  type:
+    plugin: default_value
+    default_value: blog_post
+  'body/value':
+    plugin: contentful_rich_text
+    source: body
+    embed_migrations:
+      Entry:
+        - { migration: cf_card, entity_type: node }
+  'body/format':
+    plugin: default_value
+    default_value: full_html
+destination:
+  plugin: 'entity:node'
+migration_dependencies:
+  required:
+    - cf_blog
+    - cf_card
