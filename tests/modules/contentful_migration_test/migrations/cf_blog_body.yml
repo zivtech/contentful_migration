@@ -1,6 +1,7 @@
 # Pass B: resolve the blogPost body embeds onto the SAME node (nid via lookup).
 # ContentfulRichText resolves embedded-entry callout1 via the cf_card map to a
-# <drupal-entity-embed> token (ContentfulEmbedResolver + migrate.lookup).
+# <drupal-entity-embed> token, and the inline entry-hyperlink to post2 via the
+# cf_blog map to an <a> token (ContentfulEmbedResolver + migrate.lookup).
 id: cf_blog_body
 label: 'Test: Contentful blogPost body (Pass B: resolve embeds)'
 source:
@@ -26,6 +27,7 @@ process:
     embed_migrations:
       Entry:
         - { migration: cf_card, entity_type: node }
+        - { migration: cf_blog, entity_type: node }
   'body/format':
     plugin: default_value
     default_value: full_html

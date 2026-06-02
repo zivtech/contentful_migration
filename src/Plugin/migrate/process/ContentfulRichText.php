@@ -8,9 +8,12 @@ use Contentful\RichText\Parser;
 use Contentful\RichText\Renderer;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolver;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
+use Drupal\contentful_migration\RichText\DrupalAssetHyperlink;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedAssetBlock;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedEntryBlock;
+use Drupal\contentful_migration\RichText\DrupalEntryHyperlink;
 use Drupal\contentful_migration\RichText\SysIdLinkResolver;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
@@ -26,6 +29,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *  - embedded entries/assets render as Contentful-id placeholders; we override
  *    them to resolve sys.id -> migrated Drupal entity and emit drupal-media /
  *    drupal-entity-embed tokens.
+ *  - inline entry/asset hyperlinks render with a useless `#Entry-ID` href; we
+ *    override entry-hyperlink to link the migrated entity's canonical page
+ *    (DrupalEntryHyperlink) and degrade asset-hyperlink to plain text
+ *    (DrupalAssetHyperlink).
  *  - unknown node types are silently dropped by the default CatchAll; we walk
  *    the AST and log any node type the library doesn't handle, so loss is
  *    visible.
@@ -63,6 +70,7 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     $plugin_id,
     $plugin_definition,
     private readonly ContentfulEmbedResolverInterface $resolver,
+    private readonly EntityRepositoryInterface $entityRepository,
     private readonly LoggerInterface $logger,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -82,6 +90,7 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
         $container->get('entity_type.manager'),
         $configuration['embed_migrations'] ?? [],
       ),
+      $container->get('entity.repository'),
       $container->get('logger.factory')->get('contentful_migration'),
     );
   }
@@ -109,10 +118,17 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     }
 
     // Pushed renderers take front priority, overriding the library defaults for
-    // the embed node types; all other nodes use the library's renderers.
+    // the embed and inline-hyperlink node types; all other nodes use the
+    // library's renderers.
     $renderer = new Renderer([
       new DrupalEmbeddedEntryBlock($this->resolver, $this->logger),
       new DrupalEmbeddedAssetBlock($this->resolver, $this->logger),
+      new DrupalEntryHyperlink(
+        $this->resolver,
+        $this->entityRepository,
+        $this->logger,
+      ),
+      new DrupalAssetHyperlink($this->logger),
     ]);
 
     return $renderer->render($node);

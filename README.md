@@ -70,7 +70,8 @@ comments in `contentful_migration.info.yml`.
 3. **Transform.** Custom **process plugins** handle what YAML can't:
    - `contentful_rich_text` — Rich Text AST → HTML, resolving embedded
      entries/assets to `<drupal-entity-embed>` / `<drupal-media>` tokens via the
-     migrate map. Two-pass: entities first, bodies second.
+     migrate map, and inline `entry-hyperlink` nodes to anchors on the target
+     entity's canonical path. Two-pass: entities first, bodies second.
    - `contentful_asset_to_media` + `contentful_media_bundle` — stage an asset
      into a Media entity (MIME → bundle), deduplicating identical bytes by
      SHA-256. Self-contained: it does **not** use `migrate_file_to_media` (a
@@ -101,6 +102,21 @@ This module owns the full renderer list: custom `NodeRenderer`s resolve `sys.id`
 parse failure. This path — the project's biggest risk — is proven by
 `tests/src/Unit/RichText/ContentfulRichTextTest.php` and the end-to-end
 `tests/src/Kernel/ContentfulMigrationTest.php`.
+
+### Inline hyperlinks
+
+Inline `entry-hyperlink` nodes (a link, inside body text, to another entry)
+resolve through the same `embed_migrations` map to an anchor on the target
+entity's canonical path, carrying `data-entity-type` / `data-entity-uuid`. The
+bare path always resolves on its own; the data attributes let the contrib
+[Linkit](https://www.drupal.org/project/linkit) filter rewrite the href
+alias-safely **if** it is enabled on the destination text format (and that
+format permits those attributes). This is deliberately weaker than the
+link-**field** case (`contentful_internal_link`), which Drupal core resolves
+alias-safely with no contrib module — a raw body `href` has no equivalent core
+mechanism. A target with no canonical URL (e.g. a Paragraph), an unresolved
+target, or an inline `asset-hyperlink` (see [Roadmap](#roadmap)) degrades to its
+plain link text: the words are kept, the dead link dropped, and the loss logged.
 
 ## Installation
 
@@ -155,9 +171,12 @@ tests/                                               unit + kernel coverage
 - **Presentation-mode profiles** — decoupled (JSON:API / GraphQL / Next.js),
   recoupled (view modes + field formatters against a provided theme), and
   semi-decoupled.
-- **Inline Rich Text hyperlinks** — `entry-hyperlink` / `asset-hyperlink` nodes
-  inside a body; the `contentful_internal_link` process plugin covers the
-  link-field case today.
+- **Asset hyperlinks to the file** — inline `asset-hyperlink` nodes currently
+  degrade to their link text (link dropped, logged). Linking them to the
+  migrated file URL is deferred: they are vanishingly rare in practice (one
+  instance across 218 sample exports), and resolving the file would couple the
+  renderer to the `file`/`media` modules this module otherwise leaves optional.
+  The log line is the upgrade trigger if a real space proves they matter.
 
 Import and rollback aren't wrapped by design: once a space's migrations exist,
 `drush migrate:import --execute-dependencies` and `drush migrate:rollback` are

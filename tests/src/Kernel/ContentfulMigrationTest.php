@@ -131,4 +131,49 @@ class ContentfulMigrationTest extends MigrateTestBase {
     $this->assertStringNotContainsString('Entry#', $body);
   }
 
+  /**
+   * The inline entry-hyperlink (post1 -> post2) resolves to a real anchor.
+   *
+   * It links the migrated target node's canonical path and carries its real
+   * UUID, with the library's `#Entry-` placeholder gone and the link text
+   * preserved.
+   *
+   * Truth boundary: like the embed test, the target is a *node* (has a
+   * canonical URL). The no-canonical-URL degradation (e.g. a Paragraph) and the
+   * unresolved-target degradation are covered by the DrupalEntryHyperlink unit
+   * test, without pulling the Paragraphs module into this harness.
+   */
+  public function testEndToEndEntryHyperlinkResolves(): void {
+    $this->executeMigrations(['cf_card', 'cf_blog', 'cf_blog_body']);
+
+    $lookup = $this->container->get('migrate.lookup');
+    $nodeStorage = $this->container->get('entity_type.manager')->getStorage('node');
+
+    // Hyperlink target: post2 -> a blog_post node, resolved via the cf_blog
+    // candidate. Its id + UUID come from the same lookup() the renderer uses.
+    $post2Result = $lookup->lookup('cf_blog', ['post2']);
+    $this->assertNotEmpty($post2Result, 'post2 migrated to a node.');
+    $post2First = reset($post2Result);
+    $post2Node = $nodeStorage->load(reset($post2First));
+    $this->assertNotNull($post2Node, 'The migrated post2 node loads.');
+    $uuid = $post2Node->uuid();
+    $nid = $post2Node->id();
+
+    // Host: post1 -> a blog_post node whose body holds the inline hyperlink.
+    $post1Result = $lookup->lookup('cf_blog', ['post1']);
+    $this->assertNotEmpty($post1Result, 'post1 migrated to a node.');
+    $post1First = reset($post1Result);
+    $post1Node = $nodeStorage->load(reset($post1First));
+    $this->assertNotNull($post1Node, 'The migrated post1 node loads.');
+
+    $body = (string) $post1Node->get('body')->value;
+    // Anchor links the target node's canonical path and carries its real UUID
+    // (for Linkit alias-safe rewriting); the link text survives.
+    $this->assertStringContainsString('href="/node/' . $nid . '"', $body);
+    $this->assertStringContainsString('data-entity-uuid="' . $uuid . '"', $body);
+    $this->assertStringContainsString('>advanced guide</a>', $body);
+    // The library default `#Entry-ID` placeholder href must be gone.
+    $this->assertStringNotContainsString('#Entry-', $body);
+  }
+
 }

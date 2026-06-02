@@ -6,6 +6,7 @@ namespace Drupal\Tests\contentful_migration\Unit\RichText;
 
 use Drupal\contentful_migration\Plugin\migrate\process\ContentfulRichText;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
@@ -37,7 +38,18 @@ class ContentfulRichTextTest extends UnitTestCase {
   }
 
   private function makePlugin(ContentfulEmbedResolverInterface $resolver, $logger): ContentfulRichText {
-    return new ContentfulRichText([], 'contentful_rich_text', [], $resolver, $logger);
+    // The entity repository is only exercised by the inline entry-hyperlink
+    // renderer; the ASTs in this unit suite carry no entry-hyperlink, so a bare
+    // mock (never invoked) keeps these tests focused on embed/unknown-node
+    // behaviour. End-to-end hyperlink resolution is covered by the kernel test.
+    return new ContentfulRichText(
+      [],
+      'contentful_rich_text',
+      [],
+      $resolver,
+      $this->createMock(EntityRepositoryInterface::class),
+      $logger,
+    );
   }
 
   private function transform(ContentfulRichText $plugin, array $ast): string {
