@@ -15,6 +15,9 @@ use Drupal\Tests\UnitTestCase;
  */
 class ContentfulMediaBundleTest extends UnitTestCase {
 
+  /**
+   * Runs the plugin's transform() method with the given MIME and configuration.
+   */
   private function transform($value, array $configuration = []): string {
     $plugin = new ContentfulMediaBundle($configuration, 'contentful_media_bundle', []);
     return $plugin->transform(
@@ -35,6 +38,9 @@ class ContentfulMediaBundleTest extends UnitTestCase {
     $this->assertSame($expected, $this->transform($mime));
   }
 
+  /**
+   * Data provider for testDefaultMap.
+   */
   public static function defaultMapCases(): array {
     return [
       'jpeg image (prefix)' => ['image/jpeg', 'image'],

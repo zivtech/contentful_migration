@@ -47,13 +47,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *     Asset:
  *       - { migration: contentful_media, entity_type: media }
  * @endcode
+ *
+ * handle_multiples: TRUE — a single Contentful reference is a `{sys: {...}}`
+ * associative array. Without this, migrate's pipeline treats the array as a
+ * multi-value and calls transform() on each sub-value instead of passing the
+ * whole reference. A bare scalar sys.id passes through unchanged either way.
+ * (Verified pattern: ContentfulRichText needed the same flag; a direct-call
+ * unit test cannot catch its absence — only a real migrate run does.)
  */
-// handle_multiples: TRUE — a single Contentful reference is a `{sys: {...}}`
-// associative array. Without this, migrate's pipeline treats the array as a
-// multi-value and calls transform() on each sub-value instead of passing the
-// whole reference. A bare scalar sys.id passes through unchanged either way.
-// (Verified pattern: ContentfulRichText needed the same flag; a direct-call
-// unit test cannot catch its absence — only a real migrate run does.)
 #[\Drupal\migrate\Attribute\MigrateProcess('contentful_internal_link', handle_multiples: TRUE)]
 class ContentfulInternalLink extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
@@ -67,6 +68,9 @@ class ContentfulInternalLink extends ProcessPluginBase implements ContainerFacto
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
     return new static(
       $configuration,
@@ -121,9 +125,9 @@ class ContentfulInternalLink extends ProcessPluginBase implements ContainerFacto
    * Extracts (sys.id, linkType) from a raw Contentful link or a bare sys.id.
    *
    * @param mixed $value
-   *   Either a raw Contentful link object
-   *   (`['sys' => ['id' => …, 'linkType' => 'Entry'|'Asset']]`) or a bare sys.id
-   *   string (when the migration already `extract`ed `sys/id`).
+   *   Either a raw Contentful link object (`['sys' => ['id' => …,
+   *   'linkType' => 'Entry'|'Asset']]`) or a bare sys.id string (when the
+   *   migration already `extract`ed `sys/id`).
    *
    * @return array{0: string|null, 1: string}
    *   [sysId, linkType]; sysId is NULL when the value carries no usable id.

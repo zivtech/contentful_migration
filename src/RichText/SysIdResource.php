@@ -26,15 +26,23 @@ final class SysIdResource implements ResourceInterface, EntryInterface, AssetInt
     private readonly string $type,
   ) {}
 
+  /**
+   * {@inheritdoc}
+   */
   public function getId(): string {
     return $this->id;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getType(): string {
     return $this->type;
   }
 
   /**
+   * Returns NULL; this stand-in carries only the sys.id.
+   *
    * @return null
    *   This stand-in carries only the sys.id; it has no system properties.
    */
@@ -42,10 +50,16 @@ final class SysIdResource implements ResourceInterface, EntryInterface, AssetInt
     return NULL;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function asLink(): Link {
     return new Link($this->id, $this->type);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function jsonSerialize(): mixed {
     return ['sys' => ['id' => $this->id, 'type' => $this->type]];
   }

@@ -35,14 +35,23 @@ use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
 #[\Drupal\migrate\Attribute\MigrateSource('contentful_export')]
 class ContentfulExport extends SourcePluginBase {
 
+  /**
+   * {@inheritdoc}
+   */
   public function __toString(): string {
     return (string) ($this->configuration['path'] ?? 'contentful_export');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function getIds(): array {
     return ['sys_id' => ['type' => 'string']];
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function fields(): array {
     return [
       'sys_id' => $this->t('Contentful sys.id (the migrate source key).'),
@@ -52,6 +61,9 @@ class ContentfulExport extends SourcePluginBase {
     ];
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function initializeIterator(): \Iterator {
     $path = $this->configuration['path'] ?? '';
     $selector = $this->configuration['selector'] ?? 'entries';

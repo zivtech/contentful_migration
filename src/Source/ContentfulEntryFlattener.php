@@ -33,6 +33,8 @@ namespace Drupal\contentful_migration\Source;
 final class ContentfulEntryFlattener {
 
   /**
+   * Constructs a ContentfulEntryFlattener.
+   *
    * @param string $locale
    *   The locale to resolve field values at (e.g. 'en-US').
    * @param string|null $contentType

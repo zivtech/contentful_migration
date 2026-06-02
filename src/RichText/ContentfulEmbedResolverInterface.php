@@ -14,6 +14,8 @@ namespace Drupal\contentful_migration\RichText;
 interface ContentfulEmbedResolverInterface {
 
   /**
+   * Resolves a Contentful sys.id to a migrated Drupal entity reference.
+   *
    * @param string $sysId
    *   The Contentful entry/asset sys.id from the Rich Text AST.
    * @param string $linkType

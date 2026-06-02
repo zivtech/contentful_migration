@@ -59,7 +59,8 @@ class ContentfulInternalLinkTest extends UnitTestCase {
   }
 
   /**
-   * A bare sys.id (Entry by default) resolves via the first candidate that hits.
+   * A bare sys.id (Entry by default) resolves via the first candidate hit.
+   *
    * The first candidate (paragraph) misses; the node candidate hits.
    *
    * @covers ::transform
@@ -71,8 +72,9 @@ class ContentfulInternalLinkTest extends UnitTestCase {
   }
 
   /**
-   * A raw Contentful link object resolves the same as a bare id, reading the
-   * linkType from the object.
+   * A raw Contentful link object resolves the same as a bare id.
+   *
+   * Reads the linkType from the object.
    *
    * @covers ::transform
    * @covers ::extractReference
@@ -84,8 +86,10 @@ class ContentfulInternalLinkTest extends UnitTestCase {
   }
 
   /**
-   * Candidates are tried in configured order; the first hit wins. A composite
-   * destination id ([id, revision_id], e.g. a paragraph) takes the first id.
+   * Candidates are tried in configured order; the first hit wins.
+   *
+   * A composite destination id ([id, revision_id], e.g. a paragraph) takes
+   * the first id.
    *
    * @covers ::transform
    */
@@ -95,7 +99,7 @@ class ContentfulInternalLinkTest extends UnitTestCase {
   }
 
   /**
-   * linkType dispatch: an Asset uses the Asset candidate list, not Entry's.
+   * LinkType dispatch: an Asset uses the Asset candidate list, not Entry's.
    *
    * @covers ::transform
    * @covers ::extractReference
@@ -107,8 +111,10 @@ class ContentfulInternalLinkTest extends UnitTestCase {
   }
 
   /**
-   * The object's linkType overrides the configured `link_type` default: an
-   * Asset object resolves against the Asset list even when the default is Entry.
+   * The object's linkType overrides the configured `link_type` default.
+   *
+   * An Asset object resolves against the Asset list even when the default is
+   * Entry.
    *
    * @covers ::extractReference
    */
@@ -162,6 +168,9 @@ class ContentfulInternalLinkTest extends UnitTestCase {
     $this->assertNull($this->transform($value, $lookup));
   }
 
+  /**
+   * Data provider for testReturnsNullForEmptyInput.
+   */
   public static function emptyInputCases(): array {
     return [
       'empty string' => [''],

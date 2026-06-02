@@ -37,7 +37,7 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
   }
 
   /**
-   * sys.id becomes the scalar migrate source key.
+   * Sys.id becomes the scalar migrate source key.
    *
    * @covers ::flatten
    */
@@ -60,9 +60,10 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
   }
 
   /**
-   * No-fallback contract: a non-localized field is NULL on a non-default
-   * locale pass — never the default-locale value. The two-pass translation
-   * migrations depend on this.
+   * No-fallback: a non-localized field is NULL on a non-default locale pass.
+   *
+   * Never the default-locale value. The two-pass translation migrations depend
+   * on this.
    *
    * @covers ::flatten
    */
@@ -74,8 +75,9 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
   }
 
   /**
-   * A single Link passes through raw (resolved by migration_lookup on
-   * `heroImage/sys/id` in the YAML, not flattened to a scalar here).
+   * A single Link passes through raw, not flattened to a scalar here.
+   *
+   * Resolved by migration_lookup on `heroImage/sys/id` in the YAML.
    *
    * @covers ::flatten
    */
@@ -87,8 +89,10 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
   }
 
   /**
-   * An array of Links passes through raw (resolved by sub_process +
-   * migration_lookup + extract over `sys/id` in the YAML). No `_prepared_*`.
+   * An array of Links passes through raw; no `_prepared_*` keys are added.
+   *
+   * Resolved by sub_process + migration_lookup + extract over `sys/id` in the
+   * YAML.
    *
    * @covers ::flatten
    */

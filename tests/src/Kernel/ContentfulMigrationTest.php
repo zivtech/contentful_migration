@@ -13,7 +13,7 @@ use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
 
 /**
- * End-to-end: a real migrate run resolves a Rich Text embed via the migrate map.
+ * End-to-end: a real migrate run resolves a Rich Text embed via migrate map.
  *
  * This is the test the unit tests can't be: it exercises plugin discovery
  * (`#[MigrateSource]` / `#[MigrateProcess]`), `ContentfulRichText::create()`
@@ -30,6 +30,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  */
 class ContentfulMigrationTest extends MigrateTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected static $modules = [
     'system',
     'user',
@@ -42,6 +45,9 @@ class ContentfulMigrationTest extends MigrateTestBase {
     'contentful_migration_test',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -85,6 +91,7 @@ class ContentfulMigrationTest extends MigrateTestBase {
 
   /**
    * Cheap insurance: the process plugin builds through the real container.
+   *
    * If this fails, the bug is in create()/DI wiring, not the migrate run.
    */
   public function testProcessPluginBuildsViaContainer(): void {

@@ -23,9 +23,19 @@ class ContentfulRichTextTest extends UnitTestCase {
    */
   public const REAL_ENTRY_SYS_ID = '45mD46Irkt50j4i2IqcSa2';
 
+  /**
+   * Builds a capturing logger whose records are assertable in tests.
+   */
   private function makeLogger(): AbstractLogger {
-    return new class extends AbstractLogger {
+    return new class() extends AbstractLogger {
+      /**
+       * @var string[]
+       */
       public array $records = [];
+
+      /**
+       * {@inheritdoc}
+       */
       public function log($level, string|\Stringable $message, array $context = []): void {
         // Interpolate the @placeholders for easy assertion.
         $msg = (string) $message;
@@ -34,9 +44,13 @@ class ContentfulRichTextTest extends UnitTestCase {
         }
         $this->records[] = $level . ': ' . $msg;
       }
+
     };
   }
 
+  /**
+   * Builds a ContentfulRichText plugin with the given resolver and logger.
+   */
   private function makePlugin(ContentfulEmbedResolverInterface $resolver, $logger): ContentfulRichText {
     // The entity repository is only exercised by the inline entry-hyperlink
     // renderer; the ASTs in this unit suite carry no entry-hyperlink, so a bare
@@ -52,6 +66,9 @@ class ContentfulRichTextTest extends UnitTestCase {
     );
   }
 
+  /**
+   * Runs the plugin's transform() method against the given AST array.
+   */
   private function transform(ContentfulRichText $plugin, array $ast): string {
     return $plugin->transform(
       $ast,
@@ -62,19 +79,25 @@ class ContentfulRichTextTest extends UnitTestCase {
   }
 
   /**
-   * The real embedded entry from corpus 059 resolves to a Drupal embed token,
-   * and the library's default `<div>Entry#ID</div>` placeholder is gone.
+   * The real embedded entry from corpus 059 resolves to a Drupal embed token.
+   *
+   * The library's default `<div>Entry#ID</div>` placeholder is gone.
    *
    * @covers ::transform
    */
   public function testResolvesEmbeddedEntryFromRealAst(): void {
     $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-059.json'), TRUE);
-    $resolver = new class implements ContentfulEmbedResolverInterface {
+    $resolver = new class() implements ContentfulEmbedResolverInterface {
+
+      /**
+       * {@inheritdoc}
+       */
       public function resolve(string $sysId, string $linkType): ?array {
         return $sysId === ContentfulRichTextTest::REAL_ENTRY_SYS_ID
           ? ['entity_type' => 'paragraph', 'uuid' => 'uuid-callout-1']
           : NULL;
       }
+
     };
 
     $html = $this->transform($this->makePlugin($resolver, $this->makeLogger()), $ast);
@@ -94,19 +117,28 @@ class ContentfulRichTextTest extends UnitTestCase {
    */
   public function testLogsUnknownNodeType(): void {
     $logger = $this->makeLogger();
-    $resolver = new class implements ContentfulEmbedResolverInterface {
+    $resolver = new class() implements ContentfulEmbedResolverInterface {
+
+      /**
+       * {@inheritdoc}
+       */
       public function resolve(string $sysId, string $linkType): ?array {
         return NULL;
       }
+
     };
     $ast = [
       'nodeType' => 'document',
       'data' => [],
       'content' => [
         ['nodeType' => 'mystery-widget', 'data' => [], 'content' => []],
-        ['nodeType' => 'paragraph', 'data' => [], 'content' => [
+        [
+          'nodeType' => 'paragraph',
+          'data' => [],
+          'content' => [
           ['nodeType' => 'text', 'value' => 'hi', 'marks' => [], 'data' => []],
-        ]],
+          ],
+        ],
       ],
     ];
 
@@ -123,10 +155,15 @@ class ContentfulRichTextTest extends UnitTestCase {
    */
   public function testUnresolvedEmbedLogsAndOmits(): void {
     $logger = $this->makeLogger();
-    $resolver = new class implements ContentfulEmbedResolverInterface {
+    $resolver = new class() implements ContentfulEmbedResolverInterface {
+
+      /**
+       * {@inheritdoc}
+       */
       public function resolve(string $sysId, string $linkType): ?array {
         return NULL;
       }
+
     };
     $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-059.json'), TRUE);
 
@@ -146,10 +183,15 @@ class ContentfulRichTextTest extends UnitTestCase {
    */
   public function testEmptyOnNonDocument(): void {
     $plugin = $this->makePlugin(
-      new class implements ContentfulEmbedResolverInterface {
+      new class() implements ContentfulEmbedResolverInterface {
+
+        /**
+         * {@inheritdoc}
+         */
         public function resolve(string $sysId, string $linkType): ?array {
           return NULL;
         }
+
       },
       $this->makeLogger(),
     );

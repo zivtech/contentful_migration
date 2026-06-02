@@ -71,12 +71,16 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
     return $etm;
   }
 
+  /**
+   * Builds a ContentfulEmbedResolver with the standard EMBED_MIGRATIONS config.
+   */
   private function resolver(MigrateLookupInterface $lookup, EntityTypeManagerInterface $etm): ContentfulEmbedResolver {
     return new ContentfulEmbedResolver($lookup, $etm, self::EMBED_MIGRATIONS);
   }
 
   /**
    * First candidate hits: returns its entity_type + the loaded entity's UUID.
+   *
    * Paragraph destination ids are [id, revision_id]; the id is taken.
    *
    * @covers ::resolve
@@ -108,7 +112,7 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
   }
 
   /**
-   * linkType dispatch: an Asset uses the Asset candidate list, not Entry's.
+   * LinkType dispatch: an Asset uses the Asset candidate list, not Entry's.
    *
    * @covers ::resolve
    */
@@ -145,14 +149,16 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
   }
 
   /**
-   * A lookup hit whose entity fails to load (deleted post-migration) -> NULL,
-   * not a fatal.
+   * A lookup hit whose entity fails to load (deleted post-migration) -> NULL.
+   *
+   * Not a fatal error; the caller degrades gracefully.
    *
    * @covers ::resolve
    */
   public function testReturnsNullWhenEntityMissing(): void {
     $lookup = $this->makeLookup(['contentful_callout_card|callout1' => [['id' => 7, 'revision_id' => 9]]]);
-    $etm = $this->makeEtm([]); // load() returns NULL for paragraph|7.
+    // load() returns NULL for paragraph|7.
+    $etm = $this->makeEtm([]);
     $this->assertNull($this->resolver($lookup, $etm)->resolve('callout1', 'Entry'));
   }
 

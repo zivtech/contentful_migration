@@ -42,18 +42,20 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   plugin: contentful_rich_text
  *   source: body
  * @endcode
+ *
+ * handle_multiples: TRUE — the source value is a single Rich Text document
+ * AST (an associative array). Without this, migrate's pipeline iterates the
+ * array element-by-element and calls transform() on each sub-value (nodeType,
+ * data, content) instead of passing the whole document. (Verified in a real
+ * migrate run; the unit test missed it by calling transform() directly.)
  */
-// handle_multiples: TRUE — the source value is a single Rich Text document AST
-// (an associative array). Without this, migrate's pipeline iterates the array
-// element-by-element and calls transform() on each sub-value (nodeType, data,
-// content) instead of passing the whole document. (Verified in a real migrate
-// run; the unit test missed it by calling transform() directly.)
 #[\Drupal\migrate\Attribute\MigrateProcess('contentful_rich_text', handle_multiples: TRUE)]
 class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPluginInterface {
 
   /**
-   * Node types the contentful/rich-text library renders. Anything else is
-   * dropped by the default CatchAll, so we log it.
+   * Node types the contentful/rich-text library renders natively.
+   *
+   * Anything else is dropped by the default CatchAll, so we log it.
    */
   private const KNOWN_NODE_TYPES = [
     'document', 'paragraph', 'text', 'hr', 'blockquote', 'hyperlink',
@@ -76,6 +78,9 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): static {
     // The resolver depends on per-migration YAML (`embed_migrations`), so it is
     // built here from container services + this plugin's config rather than
@@ -95,14 +100,18 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function transform($value, MigrateExecutableInterface $migrate_executable, Row $row, $destination_property): string {
     // Empty or non-AST input -> empty body.
     if (!is_array($value) || ($value['nodeType'] ?? NULL) !== 'document') {
       return '';
     }
 
-    // Log any node types the library doesn't recognise. NB: the contentful/rich-text
-    // Parser THROWS InvalidArgumentException on an unrecognised node type —
+    // Log any node types the library doesn't recognise. NB: the
+    // contentful/rich-text Parser THROWS InvalidArgumentException on an
+    // unrecognised node type —
     // it does not silently drop or reach a CatchAll. So we log the offending
     // type for visibility, then degrade gracefully on parse failure rather than
     // letting one unknown node crash the entire migration.

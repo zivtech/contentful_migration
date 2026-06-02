@@ -13,7 +13,8 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  *
  * Exercises both new process plugins through genuine plugin discovery + the
  * `entity:media` destination:
- *  - `contentful_media_bundle` resolves each asset's MIME to the `image` bundle.
+ *  - `contentful_media_bundle` resolves each asset's MIME to the `image`
+ *    bundle.
  *  - `contentful_asset_to_media` reads the pre-staged local bytes, creates a
  *    managed file, and deduplicates by content hash.
  *
@@ -31,6 +32,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  */
 class ContentfulAssetMigrationTest extends MigrateTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
   protected static $modules = [
     'system',
     'user',
@@ -48,6 +52,9 @@ class ContentfulAssetMigrationTest extends MigrateTestBase {
    */
   private string $sourceField;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp(): void {
     parent::setUp();
 
@@ -126,7 +133,8 @@ class ContentfulAssetMigrationTest extends MigrateTestBase {
     $this->assertNotSame($fids['img1'], $fids['img3'], 'A distinct asset gets its own file entity.');
     $this->assertCount(2, $fileStorage->loadMultiple(), 'Three assets, two distinct files (one shared via hash dedupe).');
 
-    // Alt text is per-media (from each row's title), even when the file is shared.
+    // Alt text is per-media (from each row's title), even when the file is
+    // shared.
     $this->assertSame('Architecture diagram', $media['img1']->get($this->sourceField)->alt);
   }
 

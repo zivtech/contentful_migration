@@ -8,7 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\migrate\MigrateLookupInterface;
 
 /**
- * Resolves a Contentful sys.id to a migrated Drupal entity, via the migrate map.
+ * Resolves a Contentful sys.id to a migrated Drupal entity via the migrate map.
  *
  * Backed by core's MigrateLookup: for the given `linkType` it walks the
  * configured candidate migrations in order, looks each `sys.id` up in that
@@ -28,11 +28,13 @@ use Drupal\migrate\MigrateLookupInterface;
  *
  * Not a shared service: it depends on per-migration YAML config, so
  * ContentfulRichText::create() constructs it with `migrate.lookup` +
- * `entity_type.manager` from the container plus the plugin's `embed_migrations`.
+ * `entity_type.manager` from the container plus `embed_migrations`.
  */
 final class ContentfulEmbedResolver implements ContentfulEmbedResolverInterface {
 
   /**
+   * Constructs a ContentfulEmbedResolver.
+   *
    * @param \Drupal\migrate\MigrateLookupInterface $migrateLookup
    *   Resolves a source id to destination ids via a migration's id-map.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -46,6 +48,9 @@ final class ContentfulEmbedResolver implements ContentfulEmbedResolverInterface 
     private readonly array $embedMigrations,
   ) {}
 
+  /**
+   * {@inheritdoc}
+   */
   public function resolve(string $sysId, string $linkType): ?array {
     foreach ($this->embedMigrations[$linkType] ?? [] as $candidate) {
       $migration = $candidate['migration'] ?? NULL;

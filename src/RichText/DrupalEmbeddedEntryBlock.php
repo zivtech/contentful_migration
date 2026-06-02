@@ -25,10 +25,16 @@ final class DrupalEmbeddedEntryBlock implements NodeRendererInterface {
     private readonly LoggerInterface $logger,
   ) {}
 
+  /**
+   * {@inheritdoc}
+   */
   public function supports(NodeInterface $node): bool {
     return $node instanceof EmbeddedEntryBlockNode;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function render(RendererInterface $renderer, NodeInterface $node, array $context = []): string {
     assert($node instanceof EmbeddedEntryBlockNode);
     $sysId = $node->getEntry()->getId();
