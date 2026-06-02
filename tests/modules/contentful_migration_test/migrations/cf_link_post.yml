@@ -1,0 +1,21 @@
+# Pass A: blogPost entry -> blog_post node (no link yet — targets may not exist).
+# Migrates BOTH posts, so post_b is in the id-map before Pass B resolves the
+# reference post_a -> post_b.
+id: cf_link_post
+label: 'Test: Contentful blogPost -> blog_post node (Pass A, link target)'
+source:
+  plugin: contentful_export
+  path: 'public://cf-link-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: blog_post
+  title: title
+destination:
+  plugin: 'entity:node'

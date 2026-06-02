@@ -1,0 +1,47 @@
+{
+  "contentTypes": [
+    {
+      "sys": { "id": "blogPost", "type": "ContentType" },
+      "displayField": "title",
+      "name": "Blog Post",
+      "fields": [
+        { "id": "title", "name": "Title", "type": "Symbol", "localized": false, "required": true },
+        { "id": "slug", "name": "Slug", "type": "Symbol", "localized": false, "required": true },
+        { "id": "relatedPost", "name": "Related Post", "type": "Link", "linkType": "Entry", "localized": false, "required": false, "validations": [{ "linkContentType": ["blogPost"] }] }
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "sys": {
+        "id": "post_a",
+        "type": "Entry",
+        "contentType": { "sys": { "type": "Link", "linkType": "ContentType", "id": "blogPost" } }
+      },
+      "fields": {
+        "title": { "en-US": "Primary Post" },
+        "slug": { "en-US": "primary-post" },
+        "relatedPost": { "en-US": { "sys": { "type": "Link", "linkType": "Entry", "id": "post_b" } } }
+      }
+    },
+    {
+      "sys": {
+        "id": "post_b",
+        "type": "Entry",
+        "contentType": { "sys": { "type": "Link", "linkType": "ContentType", "id": "blogPost" } }
+      },
+      "fields": {
+        "title": { "en-US": "Linked Target Post" },
+        "slug": { "en-US": "linked-target-post" }
+      }
+    }
+  ],
+  "assets": [],
+  "locales": [
+    { "code": "en-US", "name": "English (United States)", "default": true, "fallbackCode": null, "optional": false }
+  ],
+  "tags": [],
+  "webhooks": [],
+  "roles": [],
+  "editorInterfaces": []
+}

@@ -1,0 +1,36 @@
+# Pass B: resolve the single Contentful entry reference (relatedPost) onto the
+# SAME node's link field (nid via lookup). `source: relatedPost` is the RAW
+# {sys: {linkType: Entry, id: post_b}} associative array — so this run is what
+# exercises ContentfulInternalLink's handle_multiples: TRUE (a direct-call unit
+# test cannot). The plugin resolves post_b through cf_link_post's id-map and
+# returns an entity:node/{nid} URI for the link field.
+id: cf_link
+label: 'Test: Contentful blogPost relatedPost -> entity link (Pass B)'
+source:
+  plugin: contentful_export
+  path: 'public://cf-link-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  nid:
+    plugin: migration_lookup
+    migration: cf_link_post
+    source: sys_id
+  type:
+    plugin: default_value
+    default_value: blog_post
+  'field_related/uri':
+    plugin: contentful_internal_link
+    source: relatedPost
+    link_migrations:
+      Entry:
+        - { migration: cf_link_post, entity_type: node }
+destination:
+  plugin: 'entity:node'
+migration_dependencies:
+  required:
+    - cf_link_post
