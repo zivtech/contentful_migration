@@ -14,11 +14,12 @@ YAML can also be produced by companion content-model analysis tooling.
 
 ## Status
 
-Early development (`1.0.x-dev`). The migration runtime is built and covered by
-unit and kernel tests — including a real two-pass Migrate run that resolves
-embeds and stages assets to Media. Drush commands and presentation-mode profiles
-are on the [roadmap](#roadmap). This module is not yet covered by Drupal's
-security advisory policy — use at your own risk.
+Early development (`1.0.x-dev`). The migration runtime and the
+`contentful:export` Drush command are built and covered by unit and kernel
+tests — including a real two-pass Migrate run that resolves embeds and stages
+assets to Media. Presentation-mode profiles are on the [roadmap](#roadmap). This
+module is not yet covered by Drupal's security advisory policy — use at your own
+risk.
 
 ## Table of contents
 
@@ -56,9 +57,12 @@ comments in `contentful_migration.info.yml`.
 
 ## How it works (hybrid approach)
 
-1. **Extract.** Produce a `contentful-export` JSON dump (and, with
-   `--download-assets`, local asset files). A Drush wrapper is on the roadmap;
-   today you run `contentful-export` yourself.
+1. **Extract.** `drush contentful:export --space-id=…` wraps the
+   `contentful-export` CLI (assets included) and stages the JSON dump + asset
+   binaries at a Drupal stream-wrapper location (default `private://contentful`)
+   the migration reads. The management token is read from the
+   `CONTENTFUL_MANAGEMENT_TOKEN` environment variable, never the process argv.
+   (You can also run `contentful-export` by hand.)
 2. **Ingest + track.** The `contentful_export` Migrate **source plugin** reads
    that JSON, filters by content type, and flattens per-locale fields
    (no-fallback). Migrate's map tables give you idempotent re-runs and
@@ -140,21 +144,24 @@ src/Plugin/migrate/process/
   ContentfulInternalLink.php                         reference → entity: link URI
 src/RichText/                                         NodeRenderer impls + sys.id resolver
 src/Source/ContentfulEntryFlattener.php              pure locale/field flattener
+src/Export/                                           pure export config + summary helpers
+src/Drush/Commands/                                   drush contentful:export (stage a space export)
 migrations/examples/                                 8 worked migration YAMLs + README
 tests/                                               unit + kernel coverage
 ```
 
 ## Roadmap
 
-- **`ContentfulMigrateCommands` Drush layer** — `contentful:export` / `:analyze`
-  / `:import` / `:rollback`, wrapping `contentful-export --download-assets`.
 - **Presentation-mode profiles** — decoupled (JSON:API / GraphQL / Next.js),
   recoupled (view modes + field formatters against a provided theme), and
   semi-decoupled.
 - **Inline Rich Text hyperlinks** — `entry-hyperlink` / `asset-hyperlink` nodes
   inside a body; the `contentful_internal_link` process plugin covers the
   link-field case today.
-- **Kernel coverage** for `contentful_internal_link`.
+
+Import and rollback aren't wrapped by design: once a space's migrations exist,
+`drush migrate:import --execute-dependencies` and `drush migrate:rollback` are
+already the right tools.
 
 ## Not in scope
 
