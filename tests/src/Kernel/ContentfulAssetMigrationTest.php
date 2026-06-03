@@ -6,12 +6,15 @@ namespace Drupal\Tests\contentful_migration\Kernel;
 
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
+use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 
 /**
  * End-to-end: a real migrate run stages Contentful assets into image media.
@@ -200,6 +203,63 @@ class ContentfulAssetMigrationTest extends MigrateTestBase {
     // Dedupe still holds through the nested read path.
     $this->assertSame($fids['img1'], $fids['img2'], 'Byte-identical nested assets share one file.');
     $this->assertNotSame($fids['img1'], $fids['img3'], 'Distinct nested asset gets its own file.');
+  }
+
+  /**
+   * With no local staging, assets fetch from the CDN; empty URLs skip rows.
+   *
+   * Closes the two paths the original hermetic test deliberately left
+   * unexercised: fetchRemote()'s protocol-relative `//` -> `https:`
+   * normalization (proven against the mock's request history) with the
+   * fetched bytes becoming the managed file, and the empty-`file/url` row
+   * skipping (IGNORED, not failed) before any HTTP happens — the mock queue
+   * holds exactly one response, so a second request would fail the run.
+   */
+  public function testCdnFetchAndEmptyUrlSkip(): void {
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=');
+    file_put_contents(
+      'public://cf-cdn-export.json',
+      file_get_contents(__DIR__ . '/../../fixtures/synthetic-media-cdn-export.json'),
+    );
+
+    // One queued response for the one asset with a URL; a request history to
+    // assert what was actually fetched.
+    $history = [];
+    $mock = new MockHandler([new Response(200, [], $png)]);
+    $stack = HandlerStack::create($mock);
+    $stack->push(Middleware::history($history));
+    $this->container->set('http_client', new Client(['handler' => $stack]));
+
+    $this->executeMigration('cf_media_cdn');
+
+    // The fetch was the normalized https URL derived from the
+    // protocol-relative fixture value.
+    $this->assertCount(1, $history, 'Exactly one HTTP fetch happened (the empty-URL row never hit the network).');
+    $this->assertSame(
+      'https://images.ctfassets.net/spacexyz/cdn1/xyz/remote.png',
+      (string) $history[0]['request']->getUri(),
+      'The protocol-relative CDN URL was fetched as https.',
+    );
+
+    // The fetched bytes became the managed file behind an image media.
+    $lookup = $this->container->get('migrate.lookup');
+    $cdnResult = $lookup->lookup('cf_media_cdn', ['cdn1']);
+    $this->assertNotEmpty($cdnResult, 'The CDN-fetched asset migrated to a media entity.');
+    $first = reset($cdnResult);
+    $media = $this->container->get('entity_type.manager')->getStorage('media')->load(reset($first));
+    $this->assertInstanceOf(Media::class, $media);
+    $fid = (int) $media->get($this->sourceField)->target_id;
+    $file = $this->container->get('entity_type.manager')->getStorage('file')->load($fid);
+    $this->assertSame($png, file_get_contents($file->getFileUri()), 'The managed file holds the fetched CDN bytes.');
+
+    // The empty-URL asset was skipped — recorded IGNORED in the id-map, no
+    // media created. (A skipped row still has a map entry; its destination
+    // ids are NULL, so filter rather than expect an absent row.)
+    $emptyResult = $lookup->lookup('cf_media_cdn', ['empty1']);
+    $this->assertEmpty(array_filter($emptyResult ? reset($emptyResult) : []), 'The empty-URL asset produced no destination id.');
+    $this->assertCount(1, $this->container->get('entity_type.manager')->getStorage('media')->loadMultiple(), 'Only the fetchable asset became media.');
+    $mapRow = $this->getMigration('cf_media_cdn')->getIdMap()->getRowBySource(['sys_id' => 'empty1']);
+    $this->assertSame(MigrateIdMapInterface::STATUS_IGNORED, (int) $mapRow['source_row_status'], 'The empty-URL row was skipped, not failed.');
   }
 
 }

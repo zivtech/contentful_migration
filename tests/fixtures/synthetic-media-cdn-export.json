@@ -1,0 +1,40 @@
+{
+  "assets": [
+    {
+      "sys": {
+        "id": "cdn1",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Remote diagram"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/cdn1/xyz/remote.png",
+            "fileName": "remote.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    },
+    {
+      "sys": {
+        "id": "empty1",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Broken asset"
+        },
+        "file": {
+          "en-US": {
+            "url": "",
+            "fileName": "missing.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+# Translation pass: attach the es-MX field values to the EXISTING en node
+# (same nid via migration_lookup; translations: true). The executable proof of
+# the contentful_blog_post_es.yml example shape.
+#
+# One entry, one history: Contentful sys timestamps are entry-wide, not
+# per-locale, so the translation maps the SAME created/changed values as the
+# base pass — don't expect per-locale dates.
+id: cf_blog_es
+label: 'Test: Contentful blogPost es-MX translation'
+source:
+  plugin: contentful_export
+  path: 'public://cf-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: es-MX
+  ids:
+    sys_id:
+      type: string
+process:
+  nid:
+    plugin: migration_lookup
+    migration: cf_blog
+    source: sys_id
+  type:
+    plugin: default_value
+    default_value: blog_post
+  langcode:
+    plugin: default_value
+    default_value: es
+  content_translation_source:
+    plugin: default_value
+    default_value: en
+  title: title
+  created:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_created_at
+    - plugin: callback
+      callable: strtotime
+  changed:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_updated_at
+    - plugin: callback
+      callable: strtotime
+destination:
+  plugin: 'entity:node'
+  translations: true
+migration_dependencies:
+  required:
+    - cf_blog

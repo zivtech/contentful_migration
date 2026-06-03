@@ -25,6 +25,21 @@ process:
     plugin: default_value
     default_value: en
   title: title                          # es-MX value
+  # One entry, one history: Contentful sys timestamps are entry-wide, not
+  # per-locale, so the translation maps the SAME created/changed as the base
+  # pass — don't expect per-locale dates.
+  created:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_created_at
+    - plugin: callback
+      callable: strtotime
+  changed:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_updated_at
+    - plugin: callback
+      callable: strtotime
   # body (es-MX) also has_embeds in principle -> a *_body_es Pass B would follow the same shape
 destination:
   plugin: 'entity:node'
