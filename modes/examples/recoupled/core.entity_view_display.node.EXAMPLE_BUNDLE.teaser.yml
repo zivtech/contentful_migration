@@ -1,0 +1,59 @@
+# REFERENCE PATTERN — will not import as-is (placeholder bundle/field names).
+# The listing/card surface: summary + thumbnail only, everything else hidden.
+# Shows the media_thumbnail formatter alternative from WIDGET-MAP.md (the
+# default template renders the full media entity instead).
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.EXAMPLE_BUNDLE.body
+    - field.field.node.EXAMPLE_BUNDLE.field_category
+    - field.field.node.EXAMPLE_BUNDLE.field_featured
+    - field.field.node.EXAMPLE_BUNDLE.field_hero_image
+    - field.field.node.EXAMPLE_BUNDLE.field_publish_date
+    - field.field.node.EXAMPLE_BUNDLE.field_related_post
+    - field.field.node.EXAMPLE_BUNDLE.field_sections
+    - field.field.node.EXAMPLE_BUNDLE.field_summary
+    - field.field.node.EXAMPLE_BUNDLE.field_tags
+    - node.type.EXAMPLE_BUNDLE
+  modules:
+    - media
+    - user
+id: node.EXAMPLE_BUNDLE.teaser
+targetEntityType: node
+bundle: EXAMPLE_BUNDLE
+mode: teaser
+content:
+  # Link->Asset -> media_thumbnail (image style sized for cards; links to
+  # the host node, not the file).
+  field_hero_image:
+    type: media_thumbnail
+    label: hidden
+    weight: 0
+    region: content
+    settings:
+      image_link: content
+      image_style: medium
+      image_loading:
+        attribute: lazy
+    third_party_settings: {  }
+  # Symbol/singleLine teaser text -> plain string.
+  field_summary:
+    type: string
+    label: hidden
+    weight: 1
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+hidden:
+  body: true
+  field_category: true
+  field_featured: true
+  field_publish_date: true
+  field_related_post: true
+  field_sections: true
+  field_tags: true
+  langcode: true
+  links: true

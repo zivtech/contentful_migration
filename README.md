@@ -17,9 +17,10 @@ YAML can also be produced by companion content-model analysis tooling.
 Early development (`1.0.x-dev`). The migration runtime and the
 `contentful:export` Drush command are built and covered by unit and kernel
 tests — including a real two-pass Migrate run that resolves embeds and stages
-assets to Media. Presentation-mode profiles are on the [roadmap](#roadmap). This
-module is not yet covered by Drupal's security advisory policy — use at your own
-risk.
+assets to Media. All three presentation modes are documented with worked
+templates, plus a shipped embed-rendering recipe (see
+[Presentation modes](#presentation-modes)). This module is not yet covered by
+Drupal's security advisory policy — use at your own risk.
 
 ## Table of contents
 
@@ -28,6 +29,7 @@ risk.
 - [Embedded entry/asset resolution](#embedded-entryasset-resolution-the-central-problem)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Presentation modes](#presentation-modes)
 - [Repeatable / delta imports](#repeatable--delta-imports)
 - [What's included](#whats-included)
 - [Upgrading](#upgrading)
@@ -88,8 +90,8 @@ comments in `contentful_migration.info.yml`.
 
 The migration targets standard Drupal entities (nodes, Paragraphs, Media,
 menus). How you present them — decoupled, recoupled, or semi-decoupled — is a
-separate layer (see [Roadmap](#roadmap)); the content migration is identical
-across all three.
+separate layer (see [Presentation modes](#presentation-modes)); the content
+migration is identical across all three.
 
 ## Embedded entry/asset resolution (the central problem)
 
@@ -186,6 +188,36 @@ migration via an `embed_migrations` / `link_migrations` map — each keys a
 Contentful `linkType` to an ordered list of candidate migrations to resolve
 against. See `contentful_blog_post_body.yml` (Pass B) for the embed map.
 
+## Presentation modes
+
+The content migration is identical across all three modes — presentation is a
+layer on top, and the module ships exactly its generic slice: the
+[`contentful_embed` recipe](recipes/contentful_embed/) (the one piece of
+standing config, because migrated bodies depend on it — kernel-tested against
+a freshly migrated body) and [`modes/examples/`](modes/examples/) (worked
+reference templates, the same adapt-these contract as `migrations/examples/`).
+
+- **Decoupled** — Drupal as a headless content store. One core enable step
+  (`drush en jsonapi`, read-only by default), the embed-token contract for SPA
+  consumers, CORS-as-environment-config notes, and contrib pointers:
+  [`modes/examples/decoupled/`](modes/examples/decoupled/).
+- **Recoupled** — Drupal renders, against a theme you provide. The
+  [`editorInterfaces` → widget map](modes/examples/recoupled/WIDGET-MAP.md)
+  derives field/widget/formatter choices from data 208 of 211 profiled exports
+  already carry, with four worked display templates:
+  [`modes/examples/recoupled/`](modes/examples/recoupled/).
+- **Semi-decoupled** — Drupal shell + JS-hydrated islands. An architecture
+  pattern, honestly documented as a pointer (the union of the other two plus
+  a frontend choice): [`modes/examples/semi-decoupled/`](modes/examples/semi-decoupled/).
+
+Per-space display config (real bundle/field names) is **generated, not
+shipped**: derive it from your export's `editorInterfaces` + the widget map —
+by hand from the templates, or via companion display-planning tooling, the
+same division of labor as migration YAML. The boundary is written down in
+[`modes/examples/README.md`](modes/examples/README.md): that directory stays
+reference patterns forever, and the module never ships applied per-space
+config.
+
 ## Repeatable / delta imports
 
 Migrate's id-map makes re-imports idempotent: re-run `contentful:export` and
@@ -229,6 +261,8 @@ src/Source/ContentfulEntryFlattener.php              pure locale/field flattener
 src/Export/                                           pure export config + summary helpers
 src/Drush/Commands/                                   drush contentful:export (stage a space export)
 migrations/examples/                                 8 worked migration YAMLs + README
+recipes/contentful_embed/                            text format rendering the embed tokens
+modes/examples/                                      presentation-mode templates + WIDGET-MAP
 tests/                                               unit + kernel coverage
 ```
 
@@ -254,11 +288,6 @@ is yours — upgrades never rewrite it.
 
 ## Roadmap
 
-- **Presentation-mode profiles** — decoupled (JSON:API / GraphQL / Next.js),
-  recoupled (view modes + field formatters against a provided theme), and
-  semi-decoupled. First slice: an embed-rendering text-format recipe (see
-  [Rendering the embed tokens](#rendering-the-embed-tokens)) and a
-  Contentful-editor-interface → Drupal-widget map.
 - **Author → user mapping** — an opt-in `contentful:export` step staging the
   space's users for a `migration_lookup`/`static_map` `uid` mapping (the export
   alone carries only opaque author ids; timestamps already migrate — see

@@ -1,0 +1,134 @@
+# REFERENCE PATTERN — will not import as-is (placeholder bundle/field names).
+# The editing form for a migrated content type: each component is one
+# WIDGET-MAP.md row applied. Replace EXAMPLE_BUNDLE / field_* with your real
+# names, prune to your fields, then import with `drush cim` tooling of your
+# choice or recreate via the Manage form display UI.
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.EXAMPLE_BUNDLE.body
+    - field.field.node.EXAMPLE_BUNDLE.field_category
+    - field.field.node.EXAMPLE_BUNDLE.field_featured
+    - field.field.node.EXAMPLE_BUNDLE.field_hero_image
+    - field.field.node.EXAMPLE_BUNDLE.field_publish_date
+    - field.field.node.EXAMPLE_BUNDLE.field_related_post
+    - field.field.node.EXAMPLE_BUNDLE.field_sections
+    - field.field.node.EXAMPLE_BUNDLE.field_summary
+    - field.field.node.EXAMPLE_BUNDLE.field_tags
+    - node.type.EXAMPLE_BUNDLE
+  modules:
+    - datetime
+    - media_library
+    - paragraphs
+    - text
+id: node.EXAMPLE_BUNDLE.default
+targetEntityType: node
+bundle: EXAMPLE_BUNDLE
+mode: default
+content:
+  title:
+    type: string_textfield
+    weight: 0
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  # Symbol / singleLine -> string_textfield.
+  field_summary:
+    type: string_textfield
+    weight: 1
+    region: content
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  # RichText / richTextEditor -> text_textarea; pair the field with the
+  # contentful_embed format (recipes/contentful_embed/) so stored embed
+  # tokens render. Attach CKEditor 5 to that format for a WYSIWYG form.
+  body:
+    type: text_textarea_with_summary
+    weight: 2
+    region: content
+    settings:
+      rows: 9
+      summary_rows: 3
+      placeholder: ''
+      show_summary: false
+    third_party_settings: {  }
+  # Symbol enum / dropdown -> options_select (radio -> options_buttons).
+  field_category:
+    type: options_select
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Date / datePicker -> datetime_default.
+  field_publish_date:
+    type: datetime_default
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Boolean / boolean -> boolean_checkbox.
+  field_featured:
+    type: boolean_checkbox
+    weight: 5
+    region: content
+    settings:
+      display_label: true
+    third_party_settings: {  }
+  # Link->Asset / assetLinkEditor -> media_library_widget (core media).
+  field_hero_image:
+    type: media_library_widget
+    weight: 6
+    region: content
+    settings:
+      media_types: {  }
+    third_party_settings: {  }
+  # Link->Entry / entryLinkEditor -> entity_reference_autocomplete.
+  field_related_post:
+    type: entity_reference_autocomplete
+    weight: 7
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  # Array<Link->Entry> component pattern / entryLinksEditor -> paragraphs
+  # (contrib paragraphs + entity_reference_revisions — suggests, like the
+  # migration examples' multi-ref pattern).
+  field_sections:
+    type: paragraphs
+    weight: 8
+    region: content
+    settings:
+      title: Section
+      title_plural: Sections
+      edit_mode: open
+      closed_mode: summary
+      autocollapse: none
+      closed_mode_threshold: 0
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: ''
+      features:
+        add_above: '0'
+        collapse_edit_all: collapse_edit_all
+        duplicate: duplicate
+    third_party_settings: {  }
+  # Array<Symbol> / tagEditor -> options_buttons.
+  field_tags:
+    type: options_buttons
+    weight: 9
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  created: true
+  promote: true
+  sticky: true
+  uid: true

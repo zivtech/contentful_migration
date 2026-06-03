@@ -1,0 +1,103 @@
+# REFERENCE PATTERN — will not import as-is (placeholder bundle/field names).
+# The full rendered page for a migrated content type: formatters per
+# WIDGET-MAP.md, rendering into the theme you provide (recoupled mode
+# generates no theme). field_summary is teaser-surface only — hidden here,
+# shown in the .teaser template.
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.EXAMPLE_BUNDLE.body
+    - field.field.node.EXAMPLE_BUNDLE.field_category
+    - field.field.node.EXAMPLE_BUNDLE.field_featured
+    - field.field.node.EXAMPLE_BUNDLE.field_hero_image
+    - field.field.node.EXAMPLE_BUNDLE.field_publish_date
+    - field.field.node.EXAMPLE_BUNDLE.field_related_post
+    - field.field.node.EXAMPLE_BUNDLE.field_sections
+    - field.field.node.EXAMPLE_BUNDLE.field_summary
+    - field.field.node.EXAMPLE_BUNDLE.field_tags
+    - node.type.EXAMPLE_BUNDLE
+  modules:
+    - datetime
+    - entity_reference_revisions
+    - options
+    - text
+    - user
+id: node.EXAMPLE_BUNDLE.default
+targetEntityType: node
+bundle: EXAMPLE_BUNDLE
+mode: default
+content:
+  # Link->Asset -> rendered media entity (the media type's own display
+  # renders the file; pick a view mode sized for the surface).
+  field_hero_image:
+    type: entity_reference_entity_view
+    label: hidden
+    weight: 0
+    region: content
+    settings:
+      view_mode: default
+      link: false
+    third_party_settings: {  }
+  # RichText -> text_default; the body's contentful_embed format renders the
+  # stored <drupal-media> tokens during filter processing.
+  body:
+    type: text_default
+    label: hidden
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Array<Link->Entry> component pattern -> rendered Paragraph entities
+  # (contrib entity_reference_revisions formatter).
+  field_sections:
+    type: entity_reference_revisions_entity_view
+    label: hidden
+    weight: 2
+    region: content
+    settings:
+      view_mode: default
+      link: ''
+    third_party_settings: {  }
+  # Date -> datetime_default with a site-appropriate format.
+  field_publish_date:
+    type: datetime_default
+    label: inline
+    weight: 3
+    region: content
+    settings:
+      timezone_override: ''
+      format_type: medium
+    third_party_settings: {  }
+  # Symbol enum -> list_default (the label, not the key).
+  field_category:
+    type: list_default
+    label: inline
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Array<Symbol> -> list_default, one item per value.
+  field_tags:
+    type: list_default
+    label: above
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Link->Entry -> entity_reference_label (a link to the related node; switch
+  # to entity_reference_entity_view to render a card instead).
+  field_related_post:
+    type: entity_reference_label
+    label: above
+    weight: 6
+    region: content
+    settings:
+      link: true
+    third_party_settings: {  }
+hidden:
+  # Editorial/listing-surface fields, not page output.
+  field_featured: true
+  field_summary: true
+  langcode: true
+  links: true

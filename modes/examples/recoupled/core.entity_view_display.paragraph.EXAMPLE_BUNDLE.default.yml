@@ -1,0 +1,48 @@
+# REFERENCE PATTERN — will not import as-is (placeholder bundle/field names,
+# contrib paragraphs module). A component (Paragraph) rendered inside a host
+# page — the display half of the migration examples' component pattern
+# (contentful_column.yml et al.): heading + rich text + an optional media.
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.EXAMPLE_BUNDLE.field_heading
+    - field.field.paragraph.EXAMPLE_BUNDLE.field_media
+    - field.field.paragraph.EXAMPLE_BUNDLE.field_text
+    - paragraphs.paragraphs_type.EXAMPLE_BUNDLE
+  modules:
+    - text
+id: paragraph.EXAMPLE_BUNDLE.default
+targetEntityType: paragraph
+bundle: EXAMPLE_BUNDLE
+mode: default
+content:
+  # Symbol / singleLine -> plain string (the component's heading).
+  field_heading:
+    type: string
+    label: hidden
+    weight: 0
+    region: content
+    settings:
+      link_to_entity: false
+    third_party_settings: {  }
+  # RichText -> text_default (same embed-token rendering as node bodies —
+  # point the field at the contentful_embed format).
+  field_text:
+    type: text_default
+    label: hidden
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  # Link->Asset -> rendered media entity.
+  field_media:
+    type: entity_reference_entity_view
+    label: hidden
+    weight: 2
+    region: content
+    settings:
+      view_mode: default
+      link: false
+    third_party_settings: {  }
+hidden: {  }
