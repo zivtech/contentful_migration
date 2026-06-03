@@ -14,6 +14,7 @@
     },
     "suggest": {
         "contentful/contentful": "Content Delivery API SDK (^7.1) — only needed for live-fetch mode instead of consuming a contentful-export JSON dump.",
+        "drupal/entity_embed": "Renders the <drupal-entity-embed> tokens migrated Rich Text bodies carry for embedded *entries* (embedded assets render on core media's media_embed filter).",
         "drupal/graphql_compose": "Schema-first GraphQL for decoupled mode (closest to Contentful's DX).",
         "drupal/next": "Next.js for Drupal companion — decoupled mode when the existing frontend is Next.js.",
         "drupal/decoupled_router": "Path/alias resolution for SPA routing in decoupled/semi-decoupled mode.",

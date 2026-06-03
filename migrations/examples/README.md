@@ -18,8 +18,19 @@ from an approved `contentful-mapping.yml`.
 | Node + multi-ref sections + **seo→metatag in-host** + path alias | `contentful_page.yml` | 017 |
 | Self-referential type → **Drupal menu** (cycle resolved natively) | `contentful_navigation.yml` | 017 |
 | **Two-pass** body — Pass A (entities, no body) | `contentful_blog_post.yml` | synthetic |
+| **Authorship timestamps** (`created`/`changed` from sys, core plugins) | `contentful_blog_post.yml` | synthetic |
 | **Two-pass** body — Pass B (**embed resolution**) | `contentful_blog_post_body.yml` | synthetic |
 | **i18n** translation pass (`translations: true`) | `contentful_blog_post_es.yml` | synthetic |
+
+A Contentful entry has *one* set of sys timestamps across locales, so a
+translation pass mapping `created`/`changed` writes the same values as the
+base pass — one entry, one history; don't expect per-locale dates.
+
+**Delta re-imports:** every source block here accepts `track_changes: true`
+(re-import only changed rows) and `high_water_property: {name: sys_updated_at}`
+(skip rows untouched since the last run) — stock core options, semantics
+kernel-verified on this source plugin (`ContentfulDeltaImportTest`). See the
+module README "Repeatable / delta imports" for the deletion caveat.
 
 `siteSettings` → `config_singleton`: handled by config import, **not** a content
 migration (noted in `contentful_navigation.yml`).

@@ -28,6 +28,7 @@ risk.
 - [Embedded entry/asset resolution](#embedded-entryasset-resolution-the-central-problem)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Repeatable / delta imports](#repeatable--delta-imports)
 - [What's included](#whats-included)
 - [Roadmap](#roadmap)
 - [Not in scope](#not-in-scope)
@@ -103,6 +104,17 @@ parse failure. This path — the project's biggest risk — is proven by
 `tests/src/Unit/RichText/ContentfulRichTextTest.php` and the end-to-end
 `tests/src/Kernel/ContentfulMigrationTest.php`.
 
+### Rendering the embed tokens
+
+Migrated bodies carry `<drupal-media>` and `<drupal-entity-embed>` tokens that
+a text format must render: `<drupal-media>` renders via core `media`'s
+`media_embed` filter; `<drupal-entity-embed>` requires the contrib
+[Entity Embed](https://www.drupal.org/project/entity_embed) filter. Enable the
+relevant filter (and allow the tags) on the destination text format, or bodies
+show raw tokens — on Drupal pages and in JSON:API's `body.processed` alike.
+Spaces with no embedded-*entry* blocks (most, in the profiled corpus) need only
+core media. A ready-made text-format recipe is on the [roadmap](#roadmap).
+
 ### Inline hyperlinks
 
 Inline `entry-hyperlink` nodes (a link, inside body text, to another entry)
@@ -149,6 +161,32 @@ migration via an `embed_migrations` / `link_migrations` map — each keys a
 Contentful `linkType` to an ordered list of candidate migrations to resolve
 against. See `contentful_blog_post_body.yml` (Pass B) for the embed map.
 
+## Repeatable / delta imports
+
+Migrate's id-map makes re-imports idempotent: re-run `contentful:export` and
+`drush migrate:import`, and changed entries re-import onto the **same** Drupal
+entities. Two stock source options control re-run cost — both verified on this
+source plugin by a real kernel migrate run:
+
+```yaml
+source:
+  plugin: contentful_export
+  # …
+  track_changes: true          # re-import only rows whose content changed
+  high_water_property:
+    name: sys_updated_at       # skip rows untouched since the last run
+```
+
+Without `track_changes`, already-imported rows are **skipped even if their
+content changed** — set it for any space you intend to re-export.
+
+**Deletions do not propagate.** A full export is a snapshot with no deletion
+tombstones, and `migrate:import` never deletes destination content — an entry
+deleted in Contentful lingers in Drupal until you reconcile it (diff the
+migration's id-map source ids against the new export's `sys.id` set, then
+`drush migrate:rollback` the missing ids, or remove them by hand). This module
+is deliberately not a sync engine.
+
 ## What's included
 
 ```
@@ -170,7 +208,13 @@ tests/                                               unit + kernel coverage
 
 - **Presentation-mode profiles** — decoupled (JSON:API / GraphQL / Next.js),
   recoupled (view modes + field formatters against a provided theme), and
-  semi-decoupled.
+  semi-decoupled. First slice: an embed-rendering text-format recipe (see
+  [Rendering the embed tokens](#rendering-the-embed-tokens)) and a
+  Contentful-editor-interface → Drupal-widget map.
+- **Author → user mapping** — an opt-in `contentful:export` step staging the
+  space's users for a `migration_lookup`/`static_map` `uid` mapping (the export
+  alone carries only opaque author ids; timestamps already migrate — see
+  [Not in scope](#not-in-scope)).
 - **Asset hyperlinks to the file** — inline `asset-hyperlink` nodes currently
   degrade to their link text (link dropped, logged). Linking them to the
   migrated file URL is deferred: they are vanishingly rare in practice (one
@@ -184,10 +228,27 @@ already the right tools.
 
 ## Not in scope
 
-One-way migration only (not live bidirectional sync). Does not generate a design
-system (recoupled mode consumes a provided theme). Does not preserve Contentful
-authorship/edit history (a source limitation) or migrate Contentful functional
-config (webhooks, roles, UI extensions, SSO).
+Each exclusion below is a deliberate decision, not an omission — with the
+evidence it rests on (211 real space exports profiled):
+
+- **Live/bidirectional sync.** One-way migration only.
+  [Repeatable / delta imports](#repeatable--delta-imports) cover the re-export →
+  re-import case; a live two-way bridge is a different product.
+- **Full edit/revision history.** Exports carry only version *counters* — none
+  of the 211 profiled exports contain revision snapshots (recovering history
+  needs per-entry Management-API calls). Authorship **metadata** is migratable:
+  `sys.createdAt`/`updatedAt` map to `created`/`changed` with two core process
+  plugins (see `migrations/examples/contentful_blog_post.yml`); author→user
+  mapping is on the [roadmap](#roadmap) as an opt-in export step.
+- **Roles/permissions.** Role definitions appear in most real exports (154/211)
+  — the exclusion is not data availability. Contentful's policy rules do not
+  map onto Drupal's permission model, and auto-generating roles risks granting
+  more than intended. Model roles deliberately in Drupal.
+- **Webhooks, UI extensions, SSO.** Contentful platform config with no safe
+  Drupal equivalent: webhooks target Contentful's event model, UI extensions
+  are app-framework artifacts, SSO is organization-level configuration.
+- **Theme/design-system generation.** Recoupled presentation consumes a
+  provided theme; this module ships content, not design.
 
 ## Maintainers
 
