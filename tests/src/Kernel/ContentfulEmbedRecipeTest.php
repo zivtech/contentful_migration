@@ -182,9 +182,11 @@ class ContentfulEmbedRecipeTest extends MigrateTestBase {
 
     // Round trip, allow-list side: the module's own emitted anchor survived
     // filter_html with href and title intact — the allow-list is proven
-    // against real module output.
+    // against real module output. The explicit `<a href=` check matters:
+    // filter_html strips disallowed *attributes* leaving a bare <a>, so a
+    // text-only assertion could pass with the link destroyed.
     $this->assertStringContainsString(' title="Brochure">the brochure</a>', $rendered, 'The asset-hyperlink anchor survived the restrictive format.');
-    $this->assertStringContainsString('brochure', $rendered, 'The anchor href survived.');
+    $this->assertStringContainsString('<a href=', $rendered, 'The anchor kept its href attribute.');
     $this->assertStringContainsString('Download', $rendered, 'Surrounding text survived.');
   }
 
