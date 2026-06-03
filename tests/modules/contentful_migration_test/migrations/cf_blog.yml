@@ -15,5 +15,20 @@ process:
     plugin: default_value
     default_value: blog_post
   title: title
+  # Authorship timestamps: sys ISO-8601 -> unix. skip_on_empty front-stop
+  # leaves the property unset on dateless rows (Drupal defaults to import
+  # time) and keeps strtotime(NULL) out of the pipeline.
+  created:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_created_at
+    - plugin: callback
+      callable: strtotime
+  changed:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_updated_at
+    - plugin: callback
+      callable: strtotime
 destination:
   plugin: 'entity:node'

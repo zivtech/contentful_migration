@@ -130,4 +130,67 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
     $this->assertSame('hero1', $kept['sys_id']);
   }
 
+  /**
+   * Sys timestamps pass through as ISO 8601 strings; author link stays raw.
+   *
+   * @covers ::flatten
+   */
+  public function testExposesSysMetadata(): void {
+    $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
+    $this->assertSame('2026-02-01T12:00:00.000Z', $row['sys_created_at']);
+    $this->assertSame('2026-04-02T14:30:00.000Z', $row['sys_updated_at']);
+
+    // The fixture entry carries no createdBy; an entry that does passes the
+    // raw User link through (resolved via `sys_created_by/sys/id` in YAML).
+    $this->assertNull($row['sys_created_by']);
+    $entry = $this->blogPostEntry();
+    $entry['sys']['createdBy'] = ['sys' => ['type' => 'Link', 'linkType' => 'User', 'id' => 'user-abc']];
+    $withAuthor = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($entry);
+    $this->assertSame('user-abc', $withAuthor['sys_created_by']['sys']['id']);
+  }
+
+  /**
+   * Sys metadata is NULL when the export lacks it (2/211 corpus exports do).
+   *
+   * NULL feeds the documented `skip_on_empty` front-stop, which leaves
+   * `created`/`changed` unset so Drupal defaults them to import time.
+   *
+   * @covers ::flatten
+   */
+  public function testSysMetadataNullWhenAbsent(): void {
+    $entry = [
+      'sys' => [
+        'id' => 'bare1',
+        'contentType' => ['sys' => ['id' => 'blogPost']],
+      ],
+      'fields' => ['title' => ['en-US' => 'Dateless entry']],
+    ];
+    $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($entry);
+    $this->assertNull($row['sys_created_at']);
+    $this->assertNull($row['sys_updated_at']);
+    $this->assertNull($row['sys_created_by']);
+  }
+
+  /**
+   * The real sys value wins over an identically-named Contentful field.
+   *
+   * The sys_* keys are set after the fields loop, so a space field literally
+   * named `sys_created_at` is shadowed in the flattened row — the documented
+   * precedence (ContentfulExport::fields()).
+   *
+   * @covers ::flatten
+   */
+  public function testSysMetadataWinsOverSameNamedField(): void {
+    $entry = [
+      'sys' => [
+        'id' => 'clash1',
+        'contentType' => ['sys' => ['id' => 'blogPost']],
+        'createdAt' => '2026-05-01T00:00:00.000Z',
+      ],
+      'fields' => ['sys_created_at' => ['en-US' => 'field-value-not-a-date']],
+    ];
+    $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($entry);
+    $this->assertSame('2026-05-01T00:00:00.000Z', $row['sys_created_at']);
+  }
+
 }

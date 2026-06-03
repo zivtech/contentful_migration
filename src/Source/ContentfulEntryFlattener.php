@@ -29,6 +29,12 @@ namespace Drupal\contentful_migration\Source;
  *  - RichText (document AST), Link(s), Object fields, and scalars all pass
  *    through unchanged at the resolved locale.
  *  - A `content_type` filter mismatch yields NULL, signalling "skip this row".
+ *  - Sys metadata passes through as `sys_created_at` / `sys_updated_at`
+ *    (ISO 8601 strings, for `created`/`changed` mapping and
+ *    `high_water_property`) and `sys_created_by` (the raw
+ *    `{sys:{linkType:User,id}}` link, for author->uid mapping via the nested
+ *    source key `sys_created_by/sys/id`). Set after the fields loop, so the
+ *    sys value wins over an identically-named Contentful field.
  */
 final class ContentfulEntryFlattener {
 
@@ -77,6 +83,13 @@ final class ContentfulEntryFlattener {
         ? $localeValues[$this->locale]
         : NULL;
     }
+
+    // Sys metadata, set AFTER the fields loop so a Contentful field that
+    // happens to share one of these names cannot shadow the real sys value
+    // (the sys value wins — documented in ContentfulExport::fields()).
+    $row['sys_created_at'] = $sys['createdAt'] ?? NULL;
+    $row['sys_updated_at'] = $sys['updatedAt'] ?? NULL;
+    $row['sys_created_by'] = $sys['createdBy'] ?? NULL;
 
     return $row;
   }

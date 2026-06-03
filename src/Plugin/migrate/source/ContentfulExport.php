@@ -27,10 +27,17 @@ use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
  *   selector: entries          # or 'assets'
  *   content_type: blogPost     # omit for assets / single-type exports
  *   locale: en-US
+ *   track_changes: true        # optional: re-import rows whose content changed
+ *   high_water_property:       # optional: skip rows not touched since last run
+ *     name: sys_updated_at
  *   ids:
  *     sys_id:
  *       type: string
  * @endcode
+ *
+ * `track_changes` and `high_water_property` are stock SourcePluginBase
+ * features (this plugin does not override the hash machinery), verified by
+ * ContentfulDeltaImportTest. See the README "Repeatable / delta imports".
  */
 #[\Drupal\migrate\Attribute\MigrateSource('contentful_export')]
 class ContentfulExport extends SourcePluginBase {
@@ -56,8 +63,13 @@ class ContentfulExport extends SourcePluginBase {
     return [
       'sys_id' => $this->t('Contentful sys.id (the migrate source key).'),
       'content_type' => $this->t('The Contentful content type id.'),
+      'sys_created_at' => $this->t('Entry sys.createdAt (ISO 8601) — map to `created` via skip_on_empty + callback:strtotime.'),
+      'sys_updated_at' => $this->t('Entry sys.updatedAt (ISO 8601) — map to `changed`; also the high_water_property candidate.'),
+      'sys_created_by' => $this->t('Entry sys.createdBy (raw User link) — author id at `sys_created_by/sys/id` for static_map / migration_lookup.'),
       // Per-field source properties are dynamic per space; the migration YAML
-      // references them by field id directly.
+      // references them by field id directly. Precedence: the sys_* keys above
+      // are set after field flattening, so they WIN over an identically-named
+      // Contentful field (which would be shadowed in the flattened row).
     ];
   }
 

@@ -17,6 +17,23 @@ source:
 process:
   title: title
   'path/alias': slug
+  # PATTERN: authorship timestamps — sys.createdAt/updatedAt (ISO 8601, present
+  # in 209/211 profiled real exports) -> created/changed (unix). Core plugins
+  # only. skip_on_empty leaves the property unset on a dateless row, so Drupal
+  # defaults it to import time (and strtotime never sees NULL). Use
+  # format_date instead of strtotime only if you need TZ normalization.
+  created:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_created_at
+    - plugin: callback
+      callable: strtotime
+  changed:
+    - plugin: skip_on_empty
+      method: process
+      source: sys_updated_at
+    - plugin: callback
+      callable: strtotime
   field_hero_image:
     plugin: migration_lookup
     migration: contentful_media

@@ -139,6 +139,34 @@ class ContentfulMigrationTest extends MigrateTestBase {
   }
 
   /**
+   * Authorship timestamps land: sys dates become created/changed via core.
+   *
+   * Proves the documented chain (skip_on_empty -> callback:strtotime) through
+   * a real migrate run: the node's created/changed equal the fixture's
+   * sys.createdAt/updatedAt, not import time.
+   *
+   * Truth boundary: the dated path only. The dateless degrade (skip_on_empty
+   * leaves the property unset -> Drupal defaults to import time) composes two
+   * core plugins on a NULL the flattener unit test proves it produces — it is
+   * not re-proven here (the shared fixture has no dateless entry, and adding
+   * one would ripple through the Pass-B body run).
+   */
+  public function testAuthorshipTimestampsMigrate(): void {
+    $this->executeMigrations(['cf_blog']);
+
+    $result = $this->container->get('migrate.lookup')->lookup('cf_blog', ['post1']);
+    $this->assertNotEmpty($result, 'post1 migrated to a node.');
+    $first = reset($result);
+    $node = $this->container->get('entity_type.manager')->getStorage('node')->load(reset($first));
+    $this->assertNotNull($node, 'The migrated post1 node loads.');
+
+    // Fixture sys dates: created 2026-02-01T12:00:00.000Z, updated
+    // 2026-04-02T14:30:00.000Z.
+    $this->assertSame(strtotime('2026-02-01T12:00:00.000Z'), (int) $node->getCreatedTime(), 'created carries the Contentful creation date.');
+    $this->assertSame(strtotime('2026-04-02T14:30:00.000Z'), (int) $node->getChangedTime(), 'changed carries the Contentful update date.');
+  }
+
+  /**
    * The inline entry-hyperlink (post1 -> post2) resolves to a real anchor.
    *
    * It links the migrated target node's canonical path and carries its real
