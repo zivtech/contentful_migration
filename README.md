@@ -30,6 +30,7 @@ risk.
 - [Configuration](#configuration)
 - [Repeatable / delta imports](#repeatable--delta-imports)
 - [What's included](#whats-included)
+- [Upgrading](#upgrading)
 - [Roadmap](#roadmap)
 - [Not in scope](#not-in-scope)
 - [Maintainers](#maintainers)
@@ -126,9 +127,21 @@ alias-safely **if** it is enabled on the destination text format (and that
 format permits those attributes). This is deliberately weaker than the
 link-**field** case (`contentful_internal_link`), which Drupal core resolves
 alias-safely with no contrib module — a raw body `href` has no equivalent core
-mechanism. A target with no canonical URL (e.g. a Paragraph), an unresolved
-target, or an inline `asset-hyperlink` (see [Roadmap](#roadmap)) degrades to its
-plain link text: the words are kept, the dead link dropped, and the loss logged.
+mechanism. A target with no canonical URL (e.g. a Paragraph) or an unresolved
+target degrades to its plain link text: the words are kept, the dead link
+dropped, and the loss logged.
+
+Inline `asset-hyperlink` nodes (a link, inside body text, to a *file*: a PDF,
+a download) resolve to the migrated **file's URL** when the `media` and `file`
+modules are installed — the author-intended target, not the Media entity's
+canonical page (a Drupal-ism that is often access-restricted). Resolution rides
+the same `embed_migrations.Asset` candidates as embedded assets, then hops
+media → source field → file → URL through the media-source API, so
+non-standard source field names work; with a private files scheme the URL is
+`/system/files/…`, which keeps `file_download` access control. Without
+`media`/`file` — or for an asset that cannot resolve to a local file (not
+migrated, since deleted, oEmbed remote video) — the node degrades exactly as
+above: link text kept, dead link dropped, loss logged.
 
 ## Installation
 
@@ -207,6 +220,20 @@ migrations/examples/                                 8 worked migration YAMLs + 
 tests/                                               unit + kernel coverage
 ```
 
+## Upgrading
+
+Behavior changes between releases are cataloged here (and in each release's
+notes on drupal.org); none break an API. Per-space migration YAML you authored
+is yours — upgrades never rewrite it.
+
+- **1.0.0-beta1** — inline `asset-hyperlink` nodes emit a real `<a href>` to
+  the migrated file when the `media` + `file` modules are enabled (previously:
+  always plain text — see
+  [Inline hyperlinks](#inline-hyperlinks)). A body **re-imported** after
+  upgrading gains the file links its earlier import dropped; the plain-text
+  degrade remains the modules-absent behavior, so nothing silently loses
+  content.
+
 ## Roadmap
 
 - **Presentation-mode profiles** — decoupled (JSON:API / GraphQL / Next.js),
@@ -218,12 +245,6 @@ tests/                                               unit + kernel coverage
   space's users for a `migration_lookup`/`static_map` `uid` mapping (the export
   alone carries only opaque author ids; timestamps already migrate — see
   [Not in scope](#not-in-scope)).
-- **Asset hyperlinks to the file** — inline `asset-hyperlink` nodes currently
-  degrade to their link text (link dropped, logged). Linking them to the
-  migrated file URL is deferred: they are vanishingly rare in practice (one
-  instance across 218 sample exports), and resolving the file would couple the
-  renderer to the `file`/`media` modules this module otherwise leaves optional.
-  The log line is the upgrade trigger if a real space proves they matter.
 
 Import and rollback aren't wrapped by design: once a space's migrations exist,
 `drush migrate:import --execute-dependencies` and `drush migrate:rollback` are

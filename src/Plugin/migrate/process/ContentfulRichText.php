@@ -6,6 +6,8 @@ namespace Drupal\contentful_migration\Plugin\migrate\process;
 
 use Contentful\RichText\Parser;
 use Contentful\RichText\Renderer;
+use Drupal\contentful_migration\RichText\ContentfulAssetUrlResolver;
+use Drupal\contentful_migration\RichText\ContentfulAssetUrlResolverInterface;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolver;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
 use Drupal\contentful_migration\RichText\DrupalAssetHyperlink;
@@ -31,8 +33,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *    drupal-entity-embed tokens.
  *  - inline entry/asset hyperlinks render with a useless `#Entry-ID` href; we
  *    override entry-hyperlink to link the migrated entity's canonical page
- *    (DrupalEntryHyperlink) and degrade asset-hyperlink to plain text
- *    (DrupalAssetHyperlink).
+ *    (DrupalEntryHyperlink) and asset-hyperlink to link the migrated file
+ *    when media + file are installed, degrading to plain text when they are
+ *    not (DrupalAssetHyperlink).
  *  - unknown node types are silently dropped by the default CatchAll; we walk
  *    the AST and log any node type the library doesn't handle, so loss is
  *    visible.
@@ -74,6 +77,7 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     private readonly ContentfulEmbedResolverInterface $resolver,
     private readonly EntityRepositoryInterface $entityRepository,
     private readonly LoggerInterface $logger,
+    private readonly ?ContentfulAssetUrlResolverInterface $assetUrlResolver = NULL,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
@@ -86,17 +90,35 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     // built here from container services + this plugin's config rather than
     // being a shared service. `embed_migrations` maps each linkType to an
     // ordered list of {migration, entity_type} candidates.
+    $resolver = new ContentfulEmbedResolver(
+      $container->get('migrate.lookup'),
+      $container->get('entity_type.manager'),
+      $configuration['embed_migrations'] ?? [],
+    );
+
+    // Asset-hyperlink file resolution is a gated upgrade: the URL resolver —
+    // the single place media/file entity APIs live — is only built when both
+    // modules are installed. Absent them, DrupalAssetHyperlink keeps its
+    // plain-text degrade and the module's media/file independence holds.
+    $assetUrlResolver = NULL;
+    $moduleHandler = $container->get('module_handler');
+    if ($moduleHandler->moduleExists('media') && $moduleHandler->moduleExists('file')) {
+      $assetUrlResolver = new ContentfulAssetUrlResolver(
+        $resolver,
+        $container->get('entity.repository'),
+        $container->get('entity_type.manager'),
+        $container->get('file_url_generator'),
+      );
+    }
+
     return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,
-      new ContentfulEmbedResolver(
-        $container->get('migrate.lookup'),
-        $container->get('entity_type.manager'),
-        $configuration['embed_migrations'] ?? [],
-      ),
+      $resolver,
       $container->get('entity.repository'),
       $container->get('logger.factory')->get('contentful_migration'),
+      $assetUrlResolver,
     );
   }
 
@@ -137,7 +159,7 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
         $this->entityRepository,
         $this->logger,
       ),
-      new DrupalAssetHyperlink($this->logger),
+      new DrupalAssetHyperlink($this->logger, $this->assetUrlResolver),
     ]);
 
     return $renderer->render($node);

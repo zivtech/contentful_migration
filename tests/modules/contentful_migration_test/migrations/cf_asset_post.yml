@@ -1,0 +1,35 @@
+# Single-pass node whose body resolves BOTH Asset reference kinds against the
+# cf_asset_media id-map: the embedded-asset-block becomes a <drupal-media>
+# token and the inline asset-hyperlink becomes a real <a href> to the migrated
+# file (media -> source field -> file -> URL). Single-pass because the body's
+# only references are assets — no entry self-references needing a Pass B.
+id: cf_asset_post
+label: 'Test: assetPost -> node with asset-resolving body'
+source:
+  plugin: contentful_export
+  path: 'public://cf-asset-body-export.json'
+  selector: entries
+  content_type: assetPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: asset_post
+  title: title
+  'body/value':
+    plugin: contentful_rich_text
+    source: body
+    embed_migrations:
+      Asset:
+        - { migration: cf_asset_media, entity_type: media }
+  'body/format':
+    plugin: default_value
+    default_value: contentful_embed
+destination:
+  plugin: 'entity:node'
+migration_dependencies:
+  required:
+    - cf_asset_media

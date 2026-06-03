@@ -1,0 +1,122 @@
+{
+  "entries": [
+    {
+      "sys": {
+        "id": "apost1",
+        "type": "Entry",
+        "contentType": {
+          "sys": {
+            "type": "Link",
+            "linkType": "ContentType",
+            "id": "assetPost"
+          }
+        },
+        "createdAt": "2026-03-01T10:00:00.000Z",
+        "updatedAt": "2026-03-02T11:00:00.000Z"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Asset link post"
+        },
+        "body": {
+          "en-US": {
+            "nodeType": "document",
+            "data": {},
+            "content": [
+              {
+                "nodeType": "paragraph",
+                "data": {},
+                "content": [
+                  {
+                    "nodeType": "text",
+                    "value": "Download ",
+                    "marks": [],
+                    "data": {}
+                  },
+                  {
+                    "nodeType": "asset-hyperlink",
+                    "data": {
+                      "target": {
+                        "sys": {
+                          "type": "Link",
+                          "linkType": "Asset",
+                          "id": "fileB"
+                        }
+                      },
+                      "title": "Brochure"
+                    },
+                    "content": [
+                      {
+                        "nodeType": "text",
+                        "value": "the brochure",
+                        "marks": [],
+                        "data": {}
+                      }
+                    ]
+                  },
+                  {
+                    "nodeType": "text",
+                    "value": " today.",
+                    "marks": [],
+                    "data": {}
+                  }
+                ]
+              },
+              {
+                "nodeType": "embedded-asset-block",
+                "data": {
+                  "target": {
+                    "sys": {
+                      "type": "Link",
+                      "linkType": "Asset",
+                      "id": "imgA"
+                    }
+                  }
+                },
+                "content": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "assets": [
+    {
+      "sys": {
+        "id": "imgA",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Inline diagram"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/imgA/aaa/diagram.png",
+            "fileName": "diagram.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    },
+    {
+      "sys": {
+        "id": "fileB",
+        "type": "Asset"
+      },
+      "fields": {
+        "title": {
+          "en-US": "Brochure"
+        },
+        "file": {
+          "en-US": {
+            "url": "//images.ctfassets.net/spacexyz/fileB/bbb/brochure.png",
+            "fileName": "brochure.png",
+            "contentType": "image/png"
+          }
+        }
+      }
+    }
+  ]
+}

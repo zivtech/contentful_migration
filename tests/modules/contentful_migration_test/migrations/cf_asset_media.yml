@@ -1,0 +1,27 @@
+# Asset -> image media for the asset-body harness (B2 hyperlink + recipe
+# render tests). Reads pre-staged local bytes under the nested
+# contentful-export layout — no network. Both fixture assets are PNG, so a
+# fixed image bundle suffices (MIME -> bundle dispatch is cf_media's concern).
+id: cf_asset_media
+label: 'Test: asset-body fixture assets -> image media'
+source:
+  plugin: contentful_export
+  path: 'public://cf-asset-body-export.json'
+  selector: assets
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  bundle:
+    plugin: default_value
+    default_value: image
+  name: file/fileName
+  field_media_image/target_id:
+    plugin: contentful_asset_to_media
+    source: file/url
+    local_source_dir: 'public://cf-asset-files'
+    destination: 'public://contentful'
+  field_media_image/alt: title
+destination:
+  plugin: 'entity:media'
