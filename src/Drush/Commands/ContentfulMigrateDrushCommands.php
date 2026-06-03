@@ -167,7 +167,7 @@ class ContentfulMigrateDrushCommands extends DrushCommands {
     $this->io()->writeln(sprintf('  entries:       %d', $summary['entries']));
     $this->io()->writeln(sprintf('  assets:        %d (%s)', $summary['assets'], $this->formatFamilies($summary['asset_mime_families'])));
     $this->io()->writeln(sprintf('  locales:       %s', implode(', ', $summary['locales']) ?: '—'));
-    $this->io()->note(sprintf('Point your migration source plugin at %s/export.json; downloaded assets are under %s.', rtrim($exportDirOption, '/'), $exportDirOption));
+    $this->io()->note(sprintf('Point your migration source plugin at %s/export.json. Downloaded assets are mirrored under %s/<url-host>/… (e.g. images.ctfassets.net/<space>/<id>/<hash>/<file>); set contentful_asset_to_media local_source_dir to the export dir itself.', rtrim($exportDirOption, '/'), rtrim($exportDirOption, '/')));
   }
 
   /**

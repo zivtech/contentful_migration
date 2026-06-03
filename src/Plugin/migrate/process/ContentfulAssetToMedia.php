@@ -37,10 +37,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * source (local-staged disk vs CDN URL) and deduplicating by content hash.
  *
  * Behaviour:
- *  - Source: if `local_source_dir` is configured and the file is present there
- *    (assets pre-downloaded by `contentful-export --download-assets`), the
- *    local bytes are used — air-gappable, immune to CDN URL rot mid-run.
- *    Otherwise the (protocol-relative) CDN URL is fetched over HTTP.
+ *  - Source: if `local_source_dir` is configured, the staged bytes are read
+ *    from there — air-gappable, immune to CDN URL rot mid-run. Two layouts
+ *    are tried in order: the NESTED mirror `contentful-export
+ *    --download-assets` writes (`<dir>/<url-host>/<space>/<id>/<hash>/<file>`,
+ *    derived from each asset's own URL so image/asset/download subdomains all
+ *    resolve), then a FLAT `<dir>/<filename>` for hand-staged dirs. If
+ *    neither hits, the (protocol-relative) CDN URL is fetched over HTTP.
  *  - Dedupe by SHA-256 of the bytes: identical content uploaded under different
  *    Contentful asset ids yields a single file entity (the hash->fid map is
  *    kept in key/value; a hit is re-validated against storage so a rollback
@@ -51,8 +54,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * field_media_image/target_id:
  *   plugin: contentful_asset_to_media
  *   source: file/url
- *   destination: 'public://contentful'        # optional, dir for staged files
- *   local_source_dir: 'private://contentful/assets'  # optional, pre-download dir
+ *   destination: 'public://contentful'   # optional, dir for staged files
+ *   local_source_dir: 'private://contentful'  # optional: the export dir —
+ *     # downloaded assets live in its nested <url-host>/… mirror; a flat
+ *     # directory of bare filenames works too.
  * @endcode
  */
 #[\Drupal\migrate\Attribute\MigrateProcess('contentful_asset_to_media')]
@@ -126,17 +131,34 @@ class ContentfulAssetToMedia extends ProcessPluginBase implements ContainerFacto
 
   /**
    * Reads the asset bytes from local disk if staged, else fetches the CDN URL.
+   *
+   * Local read order: the nested mirror `contentful-export --download-assets`
+   * writes (`<dir>/<url-host><url-path>` — derived from each asset's own URL,
+   * so images./assets./downloads.ctfassets.net all resolve to their actual
+   * on-disk location), then the flat `<dir>/<filename>` layout for
+   * hand-staged directories. The `<id>/<hash>` segments in the nested path
+   * keep identically-named files from colliding.
    */
   private function readAssetBytes(string $url): string {
     $localDir = $this->configuration['local_source_dir'] ?? NULL;
     if (is_string($localDir) && $localDir !== '') {
-      $localUri = rtrim($localDir, '/') . '/' . $this->basename($url);
-      if (file_exists($localUri)) {
+      $base = rtrim($localDir, '/');
+      $host = parse_url($url, PHP_URL_HOST);
+      $path = parse_url($url, PHP_URL_PATH);
+      $candidates = [];
+      if (is_string($host) && $host !== '' && is_string($path) && $path !== '') {
+        $candidates[] = $base . '/' . $host . $path;
+      }
+      $candidates[] = $base . '/' . $this->basename($url);
+      foreach ($candidates as $localUri) {
+        if (!file_exists($localUri)) {
+          continue;
+        }
         $data = @file_get_contents($localUri);
         if ($data !== FALSE) {
           return $data;
         }
-        $this->logger->warning('Local asset @uri is present but unreadable; falling back to remote fetch.', ['@uri' => $localUri]);
+        $this->logger->warning('Local asset @uri is present but unreadable; trying the next source.', ['@uri' => $localUri]);
       }
     }
     return $this->fetchRemote($url);

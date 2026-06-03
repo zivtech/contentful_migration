@@ -7,6 +7,11 @@ namespace Drupal\Tests\contentful_migration\Kernel;
 use Drupal\media\Entity\Media;
 use Drupal\media\Entity\MediaType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Request;
 
 /**
  * End-to-end: a real migrate run stages Contentful assets into image media.
@@ -136,6 +141,65 @@ class ContentfulAssetMigrationTest extends MigrateTestBase {
     // Alt text is per-media (from each row's title), even when the file is
     // shared.
     $this->assertSame('Architecture diagram', $media['img1']->get($this->sourceField)->alt);
+  }
+
+  /**
+   * The nested layout contentful-export actually writes is read locally.
+   *
+   * `--download-assets` mirrors each asset's URL on disk
+   * (`<dir>/<host>/<space>/<id>/<hash>/<file>`), NOT a flat directory. The
+   * plugin derives that path from the asset's own URL. A throwing http_client
+   * guarantees the test fails loudly if any asset misses the local read and
+   * falls through to the CDN — the local-read claim is hermetic, not
+   * incidental.
+   *
+   * Truth boundary: the fixture URLs are all images.ctfassets.net; the
+   * non-image hosts (assets./downloads.ctfassets.net for PDF/video) follow
+   * the same per-asset-URL derivation but their real on-disk layout is
+   * unverified until a real --download-assets run (CDN fallback guards it).
+   */
+  public function testNestedStagingLayoutIsReadLocally(): void {
+    // Mirror the fixture URLs under the nested root, as contentful-export
+    // lays them out: //images.ctfassets.net/spacexyz/<id>/<hash>/<file>.
+    $pngA = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAen63NgAAAAASUVORK5CYII=');
+    $pngB = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+    $fileSystem = $this->container->get('file_system');
+    $nested = [
+      'public://cf-assets-nested/images.ctfassets.net/spacexyz/img1/abc/diagram.png' => $pngA,
+      'public://cf-assets-nested/images.ctfassets.net/spacexyz/img2/def/diagram-copy.png' => $pngA,
+      'public://cf-assets-nested/images.ctfassets.net/spacexyz/img3/ghi/logo.png' => $pngB,
+    ];
+    foreach ($nested as $uri => $bytes) {
+      $dir = dirname($uri);
+      $fileSystem->prepareDirectory($dir, $fileSystem::CREATE_DIRECTORY);
+      file_put_contents($uri, $bytes);
+    }
+
+    // Any HTTP attempt fails the row (and so the assertions below): the only
+    // way this test passes is the nested local read working for every asset.
+    $deny = new MockHandler(array_fill(0, 3, new RequestException(
+      'Network disabled: the nested local read must satisfy every asset.',
+      new Request('GET', 'https://images.ctfassets.net/denied'),
+    )));
+    $this->container->set('http_client', new Client(['handler' => HandlerStack::create($deny)]));
+
+    $this->executeMigration('cf_media_nested');
+
+    $lookup = $this->container->get('migrate.lookup');
+    $mediaStorage = $this->container->get('entity_type.manager')->getStorage('media');
+    $fids = [];
+    foreach (['img1', 'img2', 'img3'] as $sysId) {
+      $result = $lookup->lookup('cf_media_nested', [$sysId]);
+      $this->assertNotEmpty($result, "Asset {$sysId} migrated from the nested layout.");
+      $first = reset($result);
+      $entity = $mediaStorage->load(reset($first));
+      $this->assertInstanceOf(Media::class, $entity);
+      $this->assertFalse($entity->get($this->sourceField)->isEmpty(), "Asset {$sysId} media references a file.");
+      $fids[$sysId] = (int) $entity->get($this->sourceField)->target_id;
+    }
+    // Dedupe still holds through the nested read path.
+    $this->assertSame($fids['img1'], $fids['img2'], 'Byte-identical nested assets share one file.');
+    $this->assertNotSame($fids['img1'], $fids['img3'], 'Distinct nested asset gets its own file.');
   }
 
 }

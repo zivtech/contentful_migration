@@ -1,0 +1,28 @@
+# cf_media variant reading the NESTED asset layout contentful-export writes
+# (<dir>/<url-host>/<space>/<id>/<hash>/<file>). Exercised with a throwing
+# http_client so a derivation miss cannot silently fall through to the CDN.
+id: cf_media_nested
+label: 'Test: Contentful assets -> image media (nested staging layout)'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'public://cf-media-export.json'
+  selector: assets
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  bundle:
+    plugin: contentful_media_bundle
+    source: file/contentType
+  name: file/fileName
+  field_media_image/target_id:
+    plugin: contentful_asset_to_media
+    source: file/url
+    # The export dir itself — assets live in its <url-host>/… mirror.
+    local_source_dir: 'public://cf-assets-nested'
+    destination: 'public://contentful'
+  field_media_image/alt: title
+destination:
+  plugin: 'entity:media'

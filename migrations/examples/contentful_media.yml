@@ -38,7 +38,10 @@ process:
     # (that is a Drupal-to-Drupal tool; see the plugin docblock).
     plugin: contentful_asset_to_media
     source: file/url
-    local_source_dir: 'private://contentful/assets'  # where contentful-export --download-assets staged files
+    # The EXPORT DIR itself: contentful-export --download-assets writes a
+    # nested <url-host>/<space>/<id>/<hash>/<file> mirror under it, which the
+    # plugin derives from each asset's URL (a flat dir of filenames works too).
+    local_source_dir: 'private://contentful'
     destination: 'public://contentful'
   field_media_image/alt: title
 destination:
