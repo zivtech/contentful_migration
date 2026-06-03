@@ -165,20 +165,23 @@ against. See `contentful_blog_post_body.yml` (Pass B) for the embed map.
 
 Migrate's id-map makes re-imports idempotent: re-run `contentful:export` and
 `drush migrate:import`, and changed entries re-import onto the **same** Drupal
-entities. Two stock source options control re-run cost — both verified on this
-source plugin by a real kernel migrate run:
+entities. The stock `track_changes` source option controls re-run cost —
+verified on this source plugin by a real kernel migrate run:
 
 ```yaml
 source:
   plugin: contentful_export
   # …
   track_changes: true          # re-import only rows whose content changed
-  high_water_property:
-    name: sys_updated_at       # skip rows untouched since the last run
 ```
 
 Without `track_changes`, already-imported rows are **skipped even if their
 content changed** — set it for any space you intend to re-export.
+
+(`high_water_property` is deliberately not documented here: this source yields
+rows in export-file order, not date order, and the high-water interaction with
+an unordered iterator is unverified. `track_changes` alone covers the
+re-import case; high-water support may follow once it has a test.)
 
 **Deletions do not propagate.** A full export is a snapshot with no deletion
 tombstones, and `migrate:import` never deletes destination content — an entry

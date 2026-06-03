@@ -27,10 +27,11 @@ translation pass mapping `created`/`changed` writes the same values as the
 base pass — one entry, one history; don't expect per-locale dates.
 
 **Delta re-imports:** every source block here accepts `track_changes: true`
-(re-import only changed rows) and `high_water_property: {name: sys_updated_at}`
-(skip rows untouched since the last run) — stock core options, semantics
-kernel-verified on this source plugin (`ContentfulDeltaImportTest`). See the
-module README "Repeatable / delta imports" for the deletion caveat.
+(re-import only changed rows) — a stock core option whose semantics are
+kernel-verified on this source plugin (`ContentfulDeltaImportTest`).
+`high_water_property` is deliberately omitted: unverified on this unordered
+source (see the module README "Repeatable / delta imports", which also covers
+the deletion caveat).
 
 `siteSettings` → `config_singleton`: handled by config import, **not** a content
 migration (noted in `contentful_navigation.yml`).
