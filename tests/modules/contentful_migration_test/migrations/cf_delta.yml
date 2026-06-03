@@ -1,0 +1,22 @@
+# Delta re-import: blogPost -> blog_post node WITH track_changes.
+# Re-running this migration against a mutated export must re-import changed
+# rows in place (same nid) and skip unchanged ones.
+id: cf_delta
+label: 'Test: Contentful blogPost delta re-import (track_changes on)'
+source:
+  plugin: contentful_export
+  path: 'public://cf-delta-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  track_changes: true
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: blog_post
+  title: title
+destination:
+  plugin: 'entity:node'

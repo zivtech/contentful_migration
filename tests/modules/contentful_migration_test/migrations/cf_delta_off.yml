@@ -1,0 +1,21 @@
+# Negative control for cf_delta: identical migration WITHOUT track_changes.
+# Re-running against a mutated export must SKIP already-imported rows (the
+# stale title persists), proving track_changes is the flag doing the work.
+id: cf_delta_off
+label: 'Test: Contentful blogPost re-import (track_changes off)'
+source:
+  plugin: contentful_export
+  path: 'public://cf-delta-off-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: blog_post
+  title: title
+destination:
+  plugin: 'entity:node'
