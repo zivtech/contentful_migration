@@ -1,0 +1,11 @@
+name: 'Contentful embed rendering'
+description: 'Adds the contentful_embed text format: core media''s media_embed filter renders the <drupal-media> tokens migrated Contentful Rich Text bodies carry, behind a restrictive filter_html allow-list covering exactly the markup the migration emits.'
+type: 'Text format'
+install:
+  - filter
+  - media
+config:
+  # Re-applying over an existing contentful_embed format leaves it as-is:
+  # the site owns the config after the first apply, and evolving this recipe
+  # in a later release never retroactively alters applied sites.
+  strict: false

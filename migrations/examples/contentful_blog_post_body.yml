@@ -34,7 +34,11 @@ process:
         - { migration: contentful_media, entity_type: media }
   'body/format':
     plugin: default_value
-    default_value: full_html
+    # Ships with recipes/contentful_embed/ — media_embed renders the
+    # <drupal-media> tokens this body carries, behind a restrictive
+    # allow-list. Apply the recipe before importing (or point this at a
+    # format of yours that renders the tokens).
+    default_value: contentful_embed
 destination:
   plugin: 'entity:node'
   default_bundle: blog_post

@@ -58,8 +58,11 @@ class ContentfulMigrationTest extends MigrateTestBase {
     $this->installSchema('node', ['node_access']);
     $this->installConfig(['field', 'node', 'filter']);
 
-    // The Pass-B body uses format `full_html`; create it.
-    FilterFormat::create(['format' => 'full_html', 'name' => 'Full HTML'])->save();
+    // The Pass-B body stores format `contentful_embed` (the recipe-shipped
+    // default new migrations point at). A bare format satisfies storage in
+    // this node-only harness; rendering through the real recipe config is
+    // ContentfulEmbedRecipeTest's job.
+    FilterFormat::create(['format' => 'contentful_embed', 'name' => 'Contentful embed'])->save();
 
     // Destination bundles + the standard body field on blog_post.
     NodeType::create(['type' => 'card', 'name' => 'Card'])->save();

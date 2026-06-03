@@ -30,7 +30,7 @@ process:
         - { migration: cf_blog, entity_type: node }
   'body/format':
     plugin: default_value
-    default_value: full_html
+    default_value: contentful_embed
 destination:
   plugin: 'entity:node'
 migration_dependencies:

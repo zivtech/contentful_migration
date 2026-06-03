@@ -110,11 +110,23 @@ parse failure. This path — the project's biggest risk — is proven by
 Migrated bodies carry `<drupal-media>` and `<drupal-entity-embed>` tokens that
 a text format must render: `<drupal-media>` renders via core `media`'s
 `media_embed` filter; `<drupal-entity-embed>` requires the contrib
-[Entity Embed](https://www.drupal.org/project/entity_embed) filter. Enable the
-relevant filter (and allow the tags) on the destination text format, or bodies
-show raw tokens — on Drupal pages and in JSON:API's `body.processed` alike.
-Spaces with no embedded-*entry* blocks (most, in the profiled corpus) need only
-core media. A ready-made text-format recipe is on the [roadmap](#roadmap).
+[Entity Embed](https://www.drupal.org/project/entity_embed) filter. Without
+one, bodies show raw tokens — on Drupal pages and in JSON:API's
+`body.processed` alike. The bundled recipe ships that format:
+
+```sh
+drush recipe modules/contrib/contentful_migration/recipes/contentful_embed
+```
+
+creates the **`contentful_embed`** text format — `media_embed` plus a
+restrictive `filter_html` allow-list covering exactly the markup the migration
+emits (narrower than `full_html`, a security improvement). The example
+migrations point `body/format` at it, and a kernel test renders a freshly
+migrated body through it. Spaces with no embedded-*entry* blocks (most, in the
+profiled corpus) are done there: embedded assets render on core media.
+Embedded *entries* need contrib `entity_embed` added to the format — the tag
+is pre-allowed so tokens survive until then. See
+[`recipes/contentful_embed/README.md`](recipes/contentful_embed/README.md).
 
 ### Inline hyperlinks
 
@@ -233,6 +245,12 @@ is yours — upgrades never rewrite it.
   upgrading gains the file links its earlier import dropped; the plain-text
   degrade remains the modules-absent behavior, so nothing silently loses
   content.
+- **1.0.0-beta1** — the example migrations' `body/format` default is now
+  `contentful_embed` (was `full_html`), pointing fresh migrations at the
+  recipe-shipped format that actually renders their tokens. **New** migrations
+  only: per-space YAML you authored on alpha releases keeps `full_html` until
+  you adopt the recipe and edit your Pass-B format (a documented two-step in
+  [`recipes/contentful_embed/README.md`](recipes/contentful_embed/README.md)).
 
 ## Roadmap
 

@@ -1,0 +1,39 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+name: 'Contentful embed'
+format: contentful_embed
+weight: 0
+filters:
+  filter_html:
+    id: filter_html
+    provider: filter
+    status: true
+    weight: -10
+    settings:
+      allowed_html: '<a href hreflang title data-entity-type data-entity-uuid> <em> <strong> <cite> <code> <u> <s> <sup> <sub> <span> <blockquote cite> <ul type> <ol start type> <li> <dl> <dt> <dd> <h1 id> <h2 id> <h3 id> <h4 id> <h5 id> <h6 id> <p> <br> <hr> <table> <thead> <tbody> <tr> <td colspan rowspan> <th colspan rowspan> <img src alt height width loading data-entity-uuid data-entity-type data-caption data-align> <drupal-media data-entity-type data-entity-uuid data-view-mode data-align data-caption alt title> <drupal-entity-embed data-entity-type data-entity-uuid data-view-mode data-align data-caption data-entity-embed-display data-entity-embed-display-settings>'
+      filter_html_help: false
+      filter_html_nofollow: false
+  filter_align:
+    id: filter_align
+    provider: filter
+    status: true
+    weight: 7
+    settings: {  }
+  filter_caption:
+    id: filter_caption
+    provider: filter
+    status: true
+    weight: 8
+    settings: {  }
+  media_embed:
+    id: media_embed
+    provider: media
+    status: true
+    weight: 100
+    settings:
+      default_view_mode: default
+      allowed_view_modes: {  }
+      allowed_media_types: {  }
