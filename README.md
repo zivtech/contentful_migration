@@ -19,8 +19,9 @@ Early development (`1.0.x-dev`). The migration runtime and the
 tests — including a real two-pass Migrate run that resolves embeds and stages
 assets to Media. All three presentation modes are documented with worked
 templates, plus a shipped embed-rendering recipe (see
-[Presentation modes](#presentation-modes)). This module is not yet covered by
-Drupal's security advisory policy — use at your own risk.
+[Presentation modes](#presentation-modes)) and opt-in
+[author attribution](#author-attribution-opt-in). This module is not yet
+covered by Drupal's security advisory policy — use at your own risk.
 
 ## Table of contents
 
@@ -31,6 +32,7 @@ Drupal's security advisory policy — use at your own risk.
 - [Configuration](#configuration)
 - [Presentation modes](#presentation-modes)
 - [Repeatable / delta imports](#repeatable--delta-imports)
+- [Author attribution (opt-in)](#author-attribution-opt-in)
 - [What's included](#whats-included)
 - [Upgrading](#upgrading)
 - [Roadmap](#roadmap)
@@ -66,7 +68,9 @@ comments in `contentful_migration.info.yml`.
    binaries at a Drupal stream-wrapper location (default `private://contentful`)
    the migration reads. The management token is read from the
    `CONTENTFUL_MANAGEMENT_TOKEN` environment variable, never the process argv.
-   (You can also run `contentful-export` by hand.)
+   (You can also run `contentful-export` by hand.) Add `--include-users` to
+   also stage the space's members for
+   [author attribution](#author-attribution-opt-in).
 2. **Ingest + track.** The `contentful_export` Migrate **source plugin** reads
    that JSON, filters by content type, and flattens per-locale fields
    (no-fallback). Migrate's map tables give you idempotent re-runs and
@@ -247,6 +251,46 @@ migration's id-map source ids against the new export's `sys.id` set, then
 `drush migrate:rollback` the missing ids, or remove them by hand). This module
 is deliberately not a sync engine.
 
+## Author attribution (opt-in)
+
+Entry timestamps migrate out of the box (`sys.createdAt`/`updatedAt` →
+`created`/`changed`, two core process plugins). Authors need one more step:
+the export JSON carries only **opaque author ids** — bare
+`{sys:{linkType:User,id}}` links, present in 204 of 211 profiled exports, with
+zero user objects in any of them. Two supported paths, smallest first:
+
+- **`static_map` (no fetch).** Map the handful of author ids you care about to
+  existing Drupal accounts on the `sys_created_by/sys/id` nested source key.
+  Zero network, zero new users — right for spaces with few authors, or when
+  editors already have real Drupal accounts.
+- **`--include-users` (CMA fetch).** `drush contentful:export --space-id=…
+  --include-users` makes a separate paginated Content Management API call
+  (`contentful-export` itself never includes users) and stages each member
+  entry-shaped in `users.json`. The
+  [`contentful_user` example](migrations/examples/contentful_user.yml) then
+  imports them as **blocked stubs** — `status: 0`, no roles, no password:
+  attribution targets, never logins — and entry migrations resolve `uid` via
+  `migration_lookup` (worked snippet in `contentful_blog_post.yml`).
+
+Handled for you, deterministically, at the export step: duplicate display
+names are disambiguated with the member's sys id, and names are clipped to
+Drupal's 60-character limit — both hard per-row failures otherwise (user
+names are a database-level unique key). Because the staged names depend only
+on the CMA data, a regenerated `users.json` is stable and `track_changes`
+re-imports never rename members. Stated edges: member **email is an
+admin-token-only** CMA attribute (with a non-admin token, stubs import
+mail-less — `users.json` holds names and emails, which is why it stays in the
+private-by-default export dir); a member whose name collides with an
+**existing site user** fails that row loudly (rename the account or
+`static_map` that member). Entries whose author **left the space** (id
+absent from users.json) fall back to anonymous explicitly; entries with **no
+author link at all** (rare — 7 of 211 profiled exports lack `createdBy`)
+leave `uid` unset, which Drupal fills with the importing user: anonymous
+under a standard `drush migrate:import`, but a logged-in admin running
+imports through a UI (e.g. migrate_tools) would own them. Neither path is
+ever silently attributed to uid 1. The staged-file → stubs → attribution
+chain, including both degrades, is kernel-tested.
+
 ## What's included
 
 ```
@@ -258,9 +302,9 @@ src/Plugin/migrate/process/
   ContentfulInternalLink.php                         reference → entity: link URI
 src/RichText/                                         NodeRenderer impls + sys.id resolver
 src/Source/ContentfulEntryFlattener.php              pure locale/field flattener
-src/Export/                                           pure export config + summary helpers
+src/Export/                                           pure export config/summary/users-fetch helpers
 src/Drush/Commands/                                   drush contentful:export (stage a space export)
-migrations/examples/                                 8 worked migration YAMLs + README
+migrations/examples/                                 9 worked migration YAMLs + README
 recipes/contentful_embed/                            text format rendering the embed tokens
 modes/examples/                                      presentation-mode templates + WIDGET-MAP
 tests/                                               unit + kernel coverage
@@ -285,13 +329,17 @@ is yours — upgrades never rewrite it.
   only: per-space YAML you authored on alpha releases keeps `full_html` until
   you adopt the recipe and edit your Pass-B format (a documented two-step in
   [`recipes/contentful_embed/README.md`](recipes/contentful_embed/README.md)).
+- **1.0.0-beta2** — `contentful:export` gains `--include-users`
+  ([author attribution](#author-attribution-opt-in)). **Off by default**:
+  without the flag, nothing changes — no extra network call, no users.json,
+  no new users.
 
 ## Roadmap
 
-- **Author → user mapping** — an opt-in `contentful:export` step staging the
-  space's users for a `migration_lookup`/`static_map` `uid` mapping (the export
-  alone carries only opaque author ids; timestamps already migrate — see
-  [Not in scope](#not-in-scope)).
+Empty by graduation: presentation modes and asset hyperlinks shipped in beta1,
+opt-in author → user mapping in beta2. Nothing further is planned before
+1.0.0 — candidates beyond it (e.g. `high_water_property` support once it has
+a kernel test of its own) are tracked in the issue queue, not promised here.
 
 Import and rollback aren't wrapped by design: once a space's migrations exist,
 `drush migrate:import --execute-dependencies` and `drush migrate:rollback` are
@@ -309,8 +357,9 @@ evidence it rests on (211 real space exports profiled):
   of the 211 profiled exports contain revision snapshots (recovering history
   needs per-entry Management-API calls). Authorship **metadata** is migratable:
   `sys.createdAt`/`updatedAt` map to `created`/`changed` with two core process
-  plugins (see `migrations/examples/contentful_blog_post.yml`); author→user
-  mapping is on the [roadmap](#roadmap) as an opt-in export step.
+  plugins (see `migrations/examples/contentful_blog_post.yml`), and
+  [author attribution](#author-attribution-opt-in) is supported as an opt-in
+  export step.
 - **Roles/permissions.** Role definitions appear in most real exports (154/211)
   — the exclusion is not data availability. Contentful's policy rules do not
   map onto Drupal's permission model, and auto-generating roles risks granting

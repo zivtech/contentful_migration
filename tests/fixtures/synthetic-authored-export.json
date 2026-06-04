@@ -1,0 +1,39 @@
+{
+  "entries": [
+    {
+      "sys": {
+        "id": "art1",
+        "contentType": {"sys": {"id": "article"}},
+        "createdAt": "2024-03-01T10:00:00Z",
+        "updatedAt": "2024-03-02T10:00:00Z",
+        "createdBy": {"sys": {"type": "Link", "linkType": "User", "id": "user1"}}
+      },
+      "fields": {
+        "title": {"en-US": "Attributed to a known member"}
+      }
+    },
+    {
+      "sys": {
+        "id": "art2",
+        "contentType": {"sys": {"id": "article"}},
+        "createdAt": "2024-03-03T10:00:00Z",
+        "updatedAt": "2024-03-04T10:00:00Z",
+        "createdBy": {"sys": {"type": "Link", "linkType": "User", "id": "ghost9"}}
+      },
+      "fields": {
+        "title": {"en-US": "Attributed to a departed member"}
+      }
+    },
+    {
+      "sys": {
+        "id": "art3",
+        "contentType": {"sys": {"id": "article"}},
+        "createdAt": "2024-03-05T10:00:00Z",
+        "updatedAt": "2024-03-06T10:00:00Z"
+      },
+      "fields": {
+        "title": {"en-US": "No author link at all"}
+      }
+    }
+  ]
+}

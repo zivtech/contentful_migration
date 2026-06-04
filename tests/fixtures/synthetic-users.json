@@ -1,0 +1,38 @@
+{
+  "items": [
+    {
+      "sys": {"id": "user1"},
+      "fields": {
+        "name": {"und": "Ada Lovelace"},
+        "mail": {"und": "ada@example.com"}
+      }
+    },
+    {
+      "sys": {"id": "user2"},
+      "fields": {
+        "name": {"und": "Grace Hopper"}
+      }
+    },
+    {
+      "sys": {"id": "user3"},
+      "fields": {
+        "name": {"und": "Jordan Smith"},
+        "mail": {"und": "jordan.a@example.com"}
+      }
+    },
+    {
+      "sys": {"id": "user4"},
+      "fields": {
+        "name": {"und": "Jordan Smith (user4)"},
+        "mail": {"und": "jordan.b@example.com"}
+      }
+    },
+    {
+      "sys": {"id": "user5"},
+      "fields": {
+        "name": {"und": "Maximiliana Bartholomewson-Featherstonehaugh von Hohenzoller"},
+        "mail": {"und": "max@example.com"}
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+# PATTERN: opt-in author attribution — space members -> BLOCKED user stubs.
+# Source: users.json, staged by `drush contentful:export --space-id=… --include-users`.
+#
+# Why a separate file: contentful-export NEVER includes users — the export
+# JSON carries only bare author ids ({sys:{linkType:User,id}}, in 204/211
+# profiled real exports, with zero user objects). --include-users makes one
+# extra paginated Content Management API call and writes each member
+# ENTRY-SHAPED ({sys:{id}, fields:{name:{und}, mail:{und}}}), so this stock
+# contentful_export source reads it with no special handling (selector: items,
+# locale: und).
+#
+# Name handling happens at the export step, deterministically (a regenerated
+# users.json is byte-stable, so track_changes re-imports never rename
+# members): duplicate display names get the member's sys id appended —
+# "Jordan Smith (user4)" — and names clip to Drupal's 60-character limit.
+# Both are real failure modes, not theory: user names are a DATABASE-LEVEL
+# unique key, and strict SQL mode hard-fails an over-length insert. One edge
+# stays yours to resolve: a member whose name collides with an EXISTING site
+# user fails that row loudly at import — rename the site account, or skip the
+# fetch for that member and static_map their id instead (see the uid pattern
+# in contentful_blog_post.yml).
+id: contentful_user
+label: 'Contentful space members -> blocked user stubs'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/users.json'
+  selector: items
+  locale: und                   # users.json is unlocalised by construction
+  ids:
+    sys_id:
+      type: string
+process:
+  name: name
+  # Email is an ADMIN-token-only CMA attribute: fetched with a non-admin
+  # token, rows carry no mail at all, and skip_on_empty leaves the stub
+  # mail-less rather than importing an empty string.
+  mail:
+    plugin: skip_on_empty
+    method: process
+    source: mail
+  # BLOCKED stub: an attribution target, never a login.
+  status:
+    plugin: default_value
+    default_value: 0
+destination:
+  plugin: 'entity:user'
+# Deliberately absent: roles, init, pass, notification — a stub that cannot
+# log in and grants nothing cannot escalate privileges. If editors should own
+# their migrated content as REAL accounts, create those accounts first and
+# static_map author ids to them instead of running this migration.

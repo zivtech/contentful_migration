@@ -1,0 +1,33 @@
+# Authored entries -> nodes owned by the migrated user stubs. Exercises the
+# uid chain from migrations/examples/contentful_blog_post.yml: lookup on the
+# nested sys_created_by/sys/id key, no_stub (the entry pass must never mint
+# users — that is cf_user's job), anonymous fallback for a departed member.
+id: cf_authored
+label: 'Test: authored entries -> nodes with author uid lookup'
+source:
+  plugin: contentful_export
+  path: 'public://cf-authored-export.json'
+  selector: entries
+  content_type: article
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: article
+  title: title
+  uid:
+    - plugin: migration_lookup
+      migration: cf_user
+      source: sys_created_by/sys/id
+      no_stub: true
+    - plugin: default_value
+      default_value: 0
+      strict: true
+destination:
+  plugin: 'entity:node'
+migration_dependencies:
+  required:
+    - cf_user

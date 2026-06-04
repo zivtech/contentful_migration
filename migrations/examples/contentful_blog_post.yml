@@ -34,6 +34,29 @@ process:
       source: sys_updated_at
     - plugin: callback
       callable: strtotime
+  # PATTERN: author attribution (OPT-IN — uncomment when users.json is staged
+  # via `contentful:export --include-users` and contentful_user runs first;
+  # then add contentful_user to migration_dependencies.required below).
+  # sys.createdBy is a bare User link; the nested key resolves the author's
+  # BLOCKED stub through the migrate map. no_stub is load-bearing: the entry
+  # pass must never mint users — a DEPARTED member's dangling id would
+  # otherwise become an empty stub. Degrades, precisely: a departed member
+  # (id not in users.json) falls back to anonymous EXPLICITLY (the
+  # default_value tail); an entry with NO createdBy at all skips this
+  # pipeline (the lookup skips on empty input), leaving uid unset — Drupal
+  # then defaults the owner to the importing user: anonymous under
+  # `drush migrate:import`, the logged-in admin under a UI-triggered import.
+  # Neither is ever silently uid 1. No-fetch alternative: replace the lookup
+  # with static_map on the same source key, mapping known author ids to
+  # existing uids.
+  # uid:
+  #   - plugin: migration_lookup
+  #     migration: contentful_user
+  #     source: sys_created_by/sys/id
+  #     no_stub: true
+  #   - plugin: default_value
+  #     default_value: 0
+  #     strict: true
   field_hero_image:
     plugin: migration_lookup
     migration: contentful_media

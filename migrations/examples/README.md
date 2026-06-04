@@ -19,6 +19,7 @@ from an approved `contentful-mapping.yml`.
 | Self-referential type → **Drupal menu** (cycle resolved natively) | `contentful_navigation.yml` | 017 |
 | **Two-pass** body — Pass A (entities, no body) | `contentful_blog_post.yml` | synthetic |
 | **Authorship timestamps** (`created`/`changed` from sys, core plugins) | `contentful_blog_post.yml` | synthetic |
+| **Author → uid** (opt-in: blocked stubs + `migration_lookup`, or `static_map`) | `contentful_user.yml` + snippet in `contentful_blog_post.yml` | users.json (`--include-users`) |
 | **Two-pass** body — Pass B (**embed resolution**) | `contentful_blog_post_body.yml` | synthetic |
 | **i18n** translation pass (`translations: true`) | `contentful_blog_post_es.yml` | synthetic |
 
@@ -46,6 +47,10 @@ synthetic: `contentful_media` → `contentful_callout_card`/`contentful_hero_sec
 → `contentful_blog_post` (Pass A) → `contentful_blog_post_body` (Pass B) →
 `contentful_blog_post_es` (translation).
 
+With author attribution enabled, `contentful_user` runs **before** the entry
+migrations that look authors up (it has no dependencies of its own — stubs
+first, then everything that attributes to them).
+
 **Rollback** runs in reverse order (`drush migrate:rollback`). Because every
 migration tracks `sys.id` as its source key, rollback and re-import are clean.
 
@@ -53,8 +58,9 @@ migration tracks `sys.id` as its source key, rollback and re-import are clean.
 
 These patterns are exercised end-to-end by the module's kernel tests — a real
 two-pass Migrate run over the test fixtures that asserts embed resolution,
-asset → Media staging with hash dedupe, and internal-link rewriting. See
-`tests/src/Kernel/`. The example YAMLs above are the structural reference those
+asset → Media staging with hash dedupe, internal-link rewriting, and the
+author-attribution chain (blocked stubs, departed-member and no-author
+degrades). See `tests/src/Kernel/`. The example YAMLs above are the structural reference those
 discoverable test migrations are modelled on: acyclic dependencies, two-pass
 integrity, multi-ref `sub_process` shape (core #2890844), and translation-pass
 shape.

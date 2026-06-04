@@ -1,0 +1,27 @@
+# Space members (entry-shaped users.json from --include-users) -> BLOCKED
+# user stubs. Mirrors migrations/examples/contentful_user.yml.
+id: cf_user
+label: 'Test: Contentful space members -> blocked user stubs'
+source:
+  plugin: contentful_export
+  path: 'public://cf-users.json'
+  selector: items
+  locale: und
+  ids:
+    sys_id:
+      type: string
+process:
+  name: name
+  # Email is an admin-token-only CMA attribute: rows fetched with a non-admin
+  # token carry no mail, and skip_on_empty leaves the stub mail-less.
+  mail:
+    plugin: skip_on_empty
+    method: process
+    source: mail
+  # BLOCKED stub: attribution target only, never a login.
+  status:
+    plugin: default_value
+    default_value: 0
+destination:
+  plugin: 'entity:user'
+# No roles, no init/pass, no notification -> no privilege escalation.
