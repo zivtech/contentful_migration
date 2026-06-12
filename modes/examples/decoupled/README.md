@@ -19,6 +19,15 @@ shapes follow your content model automatically.
 an authentication layer in front of it; a migration content store has no
 reason to accept writes.
 
+## Converting an existing Contentful front end
+
+The query-by-query translation — endpoints, filters, pagination, includes,
+identity, rich text, assets, and the honest no-equivalent list — is
+[`CONVERSION.md`](CONVERSION.md). The short version: the mechanical layer
+(queries and response shapes) converts table-by-table; the structural layer
+(RichText is now HTML, images are now Drupal files + image styles) requires
+real front-end changes no emulation could avoid.
+
 ## The embed-token contract (read this if bodies look wrong)
 
 Migrated Rich Text bodies **store** `<drupal-media>` / `<drupal-entity-embed>`
@@ -35,6 +44,22 @@ pipeline:
 Pick one deliberately. Serving `processed` with the recipe applied is the
 zero-custom-code path; parsing `value` client-side trades that for full
 rendering control.
+
+## Looking entities up by Contentful id
+
+Drupal UUIDs are not Contentful `sys.id`s. If your front end (or anything
+holding old deep links) addresses content by Contentful id, map `sys_id` to a
+plain field during migration — the worked pattern is in
+[`migrations/examples/contentful_blog_post.yml`](../../../migrations/examples/contentful_blog_post.yml)
+(`field_contentful_id: sys_id`). Then:
+
+```
+GET /jsonapi/node/blog_post?filter[field_contentful_id]=6tFnSQdgHuWYOIQ24kKEgE
+```
+
+returns a one-element collection (or empty — handle both). Without the field,
+the only sys.id record is the migrate map table, which JSON:API does not and
+should not expose.
 
 ## CORS — environment config, never exported
 

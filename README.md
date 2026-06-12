@@ -192,6 +192,18 @@ migration via an `embed_migrations` / `link_migrations` map — each keys a
 Contentful `linkType` to an ordered list of candidate migrations to resolve
 against. See `contentful_blog_post_body.yml` (Pass B) for the embed map.
 
+### Preserving Contentful identity
+
+Map `sys_id` to a plain text field (the worked example uses
+`field_contentful_id`) on every destination bundle whose entries a consumer
+may need to look up by their original Contentful id — see the PATTERN comment
+in `contentful_blog_post.yml`. The migrate map already records sys.id →
+entity, but map tables are migration infrastructure: JSON:API never exposes
+them and a `migrate:reset` erases them. A field makes the identity durable
+content, queryable by any decoupled consumer
+(`/jsonapi/node/blog_post?filter[field_contentful_id]=<sys.id>`) — see
+[Converting a Contentful front end](modes/examples/decoupled/README.md).
+
 ## Presentation modes
 
 The content migration is identical across all three modes — presentation is a
@@ -203,7 +215,8 @@ reference templates, the same adapt-these contract as `migrations/examples/`).
 
 - **Decoupled** — Drupal as a headless content store. One core enable step
   (`drush en jsonapi`, read-only by default), the embed-token contract for SPA
-  consumers, CORS-as-environment-config notes, and contrib pointers:
+  consumers, CORS-as-environment-config notes, a [front-end conversion guide](modes/examples/decoupled/CONVERSION.md),
+  and contrib pointers:
   [`modes/examples/decoupled/`](modes/examples/decoupled/).
 - **Recoupled** — Drupal renders, against a theme you provide. The
   [`editorInterfaces` → widget map](modes/examples/recoupled/WIDGET-MAP.md)
@@ -221,6 +234,16 @@ same division of labor as migration YAML. The boundary is written down in
 [`modes/examples/README.md`](modes/examples/README.md): that directory stays
 reference patterns forever, and the module never ships applied per-space
 config.
+
+### Mapping manifest for front-end conversion
+
+`drush contentful:jsonapi-map` emits a JSON manifest of every
+`contentful_export` migration: Contentful type → JSON:API resource, field id →
+JSON:API field name (authoritative when `jsonapi` is installed;
+convention-derived otherwise). Hand it to whoever — or whatever — is rewriting
+front-end queries; it is the machine-readable companion to the
+[front-end conversion guide](modes/examples/decoupled/CONVERSION.md).
+Pipelines the extractor cannot classify are marked `"kind": "manual"`.
 
 ## Repeatable / delta imports
 
@@ -303,7 +326,8 @@ src/Plugin/migrate/process/
 src/RichText/                                         NodeRenderer impls + sys.id resolver
 src/Source/ContentfulEntryFlattener.php              pure locale/field flattener
 src/Export/                                           pure export config/summary/users-fetch helpers
-src/Drush/Commands/                                   drush contentful:export (stage a space export)
+src/JsonApiMap/                                       migration → JSON:API manifest extractor (pure)
+src/Drush/Commands/                                   drush contentful:export, contentful:jsonapi-map
 migrations/examples/                                 9 worked migration YAMLs + README
 recipes/contentful_embed/                            text format rendering the embed tokens
 modes/examples/                                      presentation-mode templates + WIDGET-MAP
@@ -333,13 +357,20 @@ is yours — upgrades never rewrite it.
   ([author attribution](#author-attribution-opt-in)). **Off by default**:
   without the flag, nothing changes — no extra network call, no users.json,
   no new users.
+- **1.0.0-beta3** — additive only: new read-only `contentful:jsonapi-map`
+  command ([mapping manifest](#mapping-manifest-for-front-end-conversion)) and
+  the `field_contentful_id` identity-preservation pattern in the worked
+  examples ([preserving Contentful identity](#preserving-contentful-identity)).
+  No existing migration, command, or rendering behavior changes.
 
 ## Roadmap
 
 Empty by graduation: presentation modes and asset hyperlinks shipped in beta1,
-opt-in author → user mapping in beta2. Nothing further is planned before
-1.0.0 — candidates beyond it (e.g. `high_water_property` support once it has
-a kernel test of its own) are tracked in the issue queue, not promised here.
+opt-in author → user mapping in beta2, the decoupled conversion toolkit
+(identity pattern, conversion guide, `contentful:jsonapi-map`) in beta3.
+Nothing further is planned before 1.0.0 — candidates beyond it (e.g.
+`high_water_property` support once it has a kernel test of its own) are
+tracked in the issue queue, not promised here.
 
 Import and rollback aren't wrapped by design: once a space's migrations exist,
 `drush migrate:import --execute-dependencies` and `drush migrate:rollback` are
@@ -369,6 +400,14 @@ evidence it rests on (211 real space exports profiled):
   are app-framework artifacts, SSO is organization-level configuration.
 - **Theme/design-system generation.** Recoupled presentation consumes a
   provided theme; this module ships content, not design.
+- **Contentful CDA emulation.** Evaluated and gated, not forgotten: the
+  envelope (`sys` + `fields` + `includes`) is reproducible, but the contract
+  (RichText AST, Images API parametric transforms) is not — at least 14% of
+  profiled spaces carry embedded-entry RichText that would break unchanged
+  front ends. Decision record and reopen-gates:
+  [`spike/cda-emulation/DECISION.md`](spike/cda-emulation/DECISION.md).
+  Conversion is the supported path (see
+  [Presentation modes](#presentation-modes)).
 
 ## Maintainers
 
