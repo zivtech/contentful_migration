@@ -7,15 +7,15 @@ namespace Drupal\Tests\contentful_migration\Unit\Export;
 use Drupal\contentful_migration\Export\ExportConfig;
 use Drupal\contentful_migration\Export\ExportSummary;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
  * Unit coverage for the pure export helpers behind contentful:export.
  *
  * The Drush command itself is a thin Process wrapper, left untested; the
  * substance (config assembly/validation and the export summary) lives here.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
 class ContentfulExportHelpersTest extends UnitTestCase {
 
   /**

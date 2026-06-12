@@ -9,6 +9,8 @@ use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
 use Drupal\user\UserInterface;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * P2 --include-users: blocked user stubs + author->uid entry attribution.
@@ -40,9 +42,9 @@ use Drupal\user\UserInterface;
  * chain in this harness's MySQL; the live CMA HTTP contract stays
  * first-real-run territory (no network), and a permissive harness collation
  * makes duplicate/over-length greens necessary-but-not-sufficient.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulUserMigrationTest extends MigrateTestBase {
 
   /**

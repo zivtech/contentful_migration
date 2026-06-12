@@ -9,12 +9,16 @@ use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\MigrateLookupInterface;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\NullLogger;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\Plugin\migrate\process\ContentfulInternalLink
- * @group contentful_migration
+ * Unit coverage for ContentfulInternalLink process plugin.
  */
+#[CoversClass(ContentfulInternalLink::class)]
+#[Group('contentful_migration')]
 class ContentfulInternalLinkTest extends UnitTestCase {
 
   private const LINK_MIGRATIONS = [
@@ -62,9 +66,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
    * A bare sys.id (Entry by default) resolves via the first candidate hit.
    *
    * The first candidate (paragraph) misses; the node candidate hits.
-   *
-   * @covers ::transform
-   * @covers ::extractReference
    */
   public function testResolvesBareSysId(): void {
     $lookup = $this->makeLookup(['contentful_blog_post|post1' => [['nid' => 5]]]);
@@ -75,9 +76,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
    * A raw Contentful link object resolves the same as a bare id.
    *
    * Reads the linkType from the object.
-   *
-   * @covers ::transform
-   * @covers ::extractReference
    */
   public function testResolvesRawLinkObject(): void {
     $lookup = $this->makeLookup(['contentful_blog_post|post1' => [['nid' => 5]]]);
@@ -90,8 +88,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
    *
    * A composite destination id ([id, revision_id], e.g. a paragraph) takes
    * the first id.
-   *
-   * @covers ::transform
    */
   public function testResolvesViaFirstCandidateWithCompositeId(): void {
     $lookup = $this->makeLookup(['contentful_callout_card|callout1' => [['id' => 7, 'revision_id' => 9]]]);
@@ -100,9 +96,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
 
   /**
    * LinkType dispatch: an Asset uses the Asset candidate list, not Entry's.
-   *
-   * @covers ::transform
-   * @covers ::extractReference
    */
   public function testDispatchesByLinkType(): void {
     $lookup = $this->makeLookup(['contentful_media|img1' => [['mid' => 3]]]);
@@ -115,8 +108,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
    *
    * An Asset object resolves against the Asset list even when the default is
    * Entry.
-   *
-   * @covers ::extractReference
    */
   public function testObjectLinkTypeOverridesConfiguredDefault(): void {
     $lookup = $this->makeLookup(['contentful_media|img1' => [['mid' => 3]]]);
@@ -126,8 +117,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
 
   /**
    * A bare id uses the configured `link_type` to pick the candidate list.
-   *
-   * @covers ::extractReference
    */
   public function testConfiguredLinkTypeForBareId(): void {
     $lookup = $this->makeLookup(['contentful_media|img1' => [['mid' => 3]]]);
@@ -136,8 +125,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
 
   /**
    * No candidate resolves (not yet migrated) -> NULL, leaving the link empty.
-   *
-   * @covers ::transform
    */
   public function testReturnsNullWhenNoCandidateMatches(): void {
     $this->assertNull($this->transform('missing1', $this->makeLookup([])));
@@ -145,8 +132,6 @@ class ContentfulInternalLinkTest extends UnitTestCase {
 
   /**
    * An unconfigured linkType resolves to NULL without consulting MigrateLookup.
-   *
-   * @covers ::transform
    */
   public function testReturnsNullForUnconfiguredLinkType(): void {
     $lookup = $this->createMock(MigrateLookupInterface::class);
@@ -157,11 +142,8 @@ class ContentfulInternalLinkTest extends UnitTestCase {
 
   /**
    * Empty / malformed input -> NULL without consulting MigrateLookup.
-   *
-   * @dataProvider emptyInputCases
-   * @covers ::transform
-   * @covers ::extractReference
    */
+  #[DataProvider('emptyInputCases')]
   public function testReturnsNullForEmptyInput($value): void {
     $lookup = $this->createMock(MigrateLookupInterface::class);
     $lookup->expects($this->never())->method('lookup');

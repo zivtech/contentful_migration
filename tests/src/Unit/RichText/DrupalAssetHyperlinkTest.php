@@ -10,12 +10,15 @@ use Contentful\RichText\RendererInterface;
 use Drupal\contentful_migration\RichText\ContentfulAssetUrlResolverInterface;
 use Drupal\contentful_migration\RichText\DrupalAssetHyperlink;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\RichText\DrupalAssetHyperlink
- * @group contentful_migration
+ * Unit coverage for DrupalAssetHyperlink.
  */
+#[CoversClass(DrupalAssetHyperlink::class)]
+#[Group('contentful_migration')]
 class DrupalAssetHyperlinkTest extends UnitTestCase {
 
   /**
@@ -25,8 +28,6 @@ class DrupalAssetHyperlinkTest extends UnitTestCase {
    * resolver when media/file are not installed, and this construction — the
    * logger alone — is exactly what that produces. It also overrides the
    * library's useless `#Asset-ID` default.
-   *
-   * @covers ::render
    */
   public function testRendersLinkTextAndLogs(): void {
     $logger = $this->createMock(LoggerInterface::class);
@@ -43,8 +44,6 @@ class DrupalAssetHyperlinkTest extends UnitTestCase {
 
   /**
    * With a resolver hit, the hyperlink emits a real, escaped file anchor.
-   *
-   * @covers ::render
    */
   public function testEmitsFileAnchorWhenResolved(): void {
     $logger = $this->createMock(LoggerInterface::class);
@@ -70,8 +69,6 @@ class DrupalAssetHyperlinkTest extends UnitTestCase {
 
   /**
    * A resolver miss (asset unresolvable) degrades exactly like no resolver.
-   *
-   * @covers ::render
    */
   public function testDegradesWhenResolverReturnsNull(): void {
     $logger = $this->createMock(LoggerInterface::class);

@@ -7,6 +7,8 @@ namespace Drupal\Tests\contentful_migration\Kernel;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end: a translation pass attaches es-MX values to the en node.
@@ -25,9 +27,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  * translation) is not executed here — it composes the translation mechanics
  * proven here with the embed mechanics proven in ContentfulMigrationTest, and
  * the fixture's es-MX body carries no embeds to resolve.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulTranslationMigrationTest extends MigrateTestBase {
 
   /**

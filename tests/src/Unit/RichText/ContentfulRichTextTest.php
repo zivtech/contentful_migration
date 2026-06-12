@@ -10,12 +10,15 @@ use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\AbstractLogger;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\Plugin\migrate\process\ContentfulRichText
- * @group contentful_migration
+ * Unit coverage for ContentfulRichText process plugin.
  */
+#[CoversClass(ContentfulRichText::class)]
+#[Group('contentful_migration')]
 class ContentfulRichTextTest extends UnitTestCase {
 
   /**
@@ -82,8 +85,6 @@ class ContentfulRichTextTest extends UnitTestCase {
    * The real embedded entry from corpus 059 resolves to a Drupal embed token.
    *
    * The library's default `<div>Entry#ID</div>` placeholder is gone.
-   *
-   * @covers ::transform
    */
   public function testResolvesEmbeddedEntryFromRealAst(): void {
     $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-059.json'), TRUE);
@@ -112,8 +113,6 @@ class ContentfulRichTextTest extends UnitTestCase {
 
   /**
    * Unknown node types are logged (visible), not silently dropped.
-   *
-   * @covers ::transform
    */
   public function testLogsUnknownNodeType(): void {
     $logger = $this->makeLogger();
@@ -150,8 +149,6 @@ class ContentfulRichTextTest extends UnitTestCase {
 
   /**
    * An unresolvable embed (not yet migrated) logs and emits nothing.
-   *
-   * @covers ::transform
    */
   public function testUnresolvedEmbedLogsAndOmits(): void {
     $logger = $this->makeLogger();
@@ -178,8 +175,6 @@ class ContentfulRichTextTest extends UnitTestCase {
 
   /**
    * Non-document input degrades to an empty string.
-   *
-   * @covers ::transform
    */
   public function testEmptyOnNonDocument(): void {
     $plugin = $this->makePlugin(

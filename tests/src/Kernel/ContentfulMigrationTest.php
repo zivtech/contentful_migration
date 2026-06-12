@@ -11,6 +11,8 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end: a real migrate run resolves a Rich Text embed via migrate map.
@@ -25,9 +27,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  * for the entity-type-agnostic resolver path (the resolver returns whatever
  * entity_type the matched candidate names). Paragraph / Media integration is
  * NOT proven by this test — node keeps the harness to core modules.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulMigrationTest extends MigrateTestBase {
 
   /**

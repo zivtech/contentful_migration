@@ -7,12 +7,12 @@ namespace Drupal\Tests\contentful_migration\Unit\Export;
 use Drupal\contentful_migration\Export\UserFetchPlan;
 use Drupal\contentful_migration\Source\ContentfulEntryFlattener;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\Group;
 
 // phpcs:disable DrupalPractice.General.LanguageNone.Und -- 'und' here is the
 // users.json file-format locale key this test pins (the staged file is read
 // at locale: und), not a field-API value access; the class under test is
 // deliberately Drupal-free.
-
 /**
  * Unit coverage for the pure users-fetch plan behind --include-users.
  *
@@ -27,9 +27,8 @@ use Drupal\Tests\UnitTestCase;
  * items}; firstName/lastName/email top-level on the item — verified against
  * the official contentful-management.js UserProps type). The live HTTP
  * behaviour stays first-real-run territory: no network in the harness.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
 class UserFetchPlanTest extends UnitTestCase {
 
   /**

@@ -13,12 +13,15 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use Psr\Log\LoggerInterface;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\RichText\DrupalEntryHyperlink
- * @group contentful_migration
+ * Unit coverage for DrupalEntryHyperlink.
  */
+#[CoversClass(DrupalEntryHyperlink::class)]
+#[Group('contentful_migration')]
 class DrupalEntryHyperlinkTest extends UnitTestCase {
 
   /**
@@ -81,8 +84,6 @@ class DrupalEntryHyperlinkTest extends UnitTestCase {
    *
    * The anchor carries the entity-reference attributes, replacing the
    * library's `#Entry-ID` default.
-   *
-   * @covers ::render
    */
   public function testResolvedEntryRendersAnchor(): void {
     $logger = $this->createMock(LoggerInterface::class);
@@ -104,8 +105,6 @@ class DrupalEntryHyperlinkTest extends UnitTestCase {
 
   /**
    * A non-empty Contentful link title is preserved as the anchor title attr.
-   *
-   * @covers ::render
    */
   public function testTitleAttributePreserved(): void {
     $renderer = new DrupalEntryHyperlink(
@@ -124,8 +123,6 @@ class DrupalEntryHyperlinkTest extends UnitTestCase {
    *
    * This is the blind-spot branch (e.g. a Paragraph target): it must not fatal
    * or emit a broken href, and the node-only kernel fixture cannot reach it.
-   *
-   * @covers ::render
    */
   public function testNoCanonicalUrlDegradesToText(): void {
     $logger = $this->createMock(LoggerInterface::class);
@@ -149,8 +146,6 @@ class DrupalEntryHyperlinkTest extends UnitTestCase {
 
   /**
    * An unresolved target (not yet migrated) keeps the link text and logs.
-   *
-   * @covers ::render
    */
   public function testUnresolvedTargetDegradesToText(): void {
     $logger = $this->createMock(LoggerInterface::class);
@@ -170,8 +165,6 @@ class DrupalEntryHyperlinkTest extends UnitTestCase {
 
   /**
    * A resolved reference whose entity no longer loads keeps the link text.
-   *
-   * @covers ::render
    */
   public function testMissingEntityDegradesToText(): void {
     $logger = $this->createMock(LoggerInterface::class);

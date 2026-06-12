@@ -14,6 +14,8 @@ use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end: the shipped recipe renders a freshly migrated body.
@@ -32,9 +34,9 @@ use Drupal\Tests\user\Traits\UserCreationTrait;
  * asserted allow-listed (survives, not stripped) and its rendering stays a
  * documented contract. The recipe's module-install step is a no-op here
  * (media is a test dependency); core's RecipeRunner tests own that behavior.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulEmbedRecipeTest extends MigrateTestBase {
 
   use UserCreationTrait;

@@ -8,6 +8,8 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Delta re-import: track_changes re-imports changed rows, skips unchanged.
@@ -26,9 +28,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  * no tombstones and migrate never deletes — the documented drift gap), nor
  * `high_water_property` (needs the `sys_updated_at` source field, a separate
  * change).
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulDeltaImportTest extends MigrateTestBase {
 
   /**

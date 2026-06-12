@@ -6,11 +6,14 @@ namespace Drupal\Tests\contentful_migration\Unit\Source;
 
 use Drupal\contentful_migration\Source\ContentfulEntryFlattener;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\Source\ContentfulEntryFlattener
- * @group contentful_migration
+ * Unit coverage for ContentfulEntryFlattener.
  */
+#[CoversClass(ContentfulEntryFlattener::class)]
+#[Group('contentful_migration')]
 class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
@@ -38,8 +41,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
    * Sys.id becomes the scalar migrate source key.
-   *
-   * @covers ::flatten
    */
   public function testExposesSysId(): void {
     $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -49,8 +50,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
    * A localized field resolves to the value at the requested locale.
-   *
-   * @covers ::flatten
    */
   public function testLocalizedFieldResolvesPerLocale(): void {
     $en = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -64,8 +63,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
    *
    * Never the default-locale value. The two-pass translation migrations depend
    * on this.
-   *
-   * @covers ::flatten
    */
   public function testNoFallbackForNonLocalizedField(): void {
     $en = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -78,8 +75,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
    * A single Link passes through raw, not flattened to a scalar here.
    *
    * Resolved by migration_lookup on `heroImage/sys/id` in the YAML.
-   *
-   * @covers ::flatten
    */
   public function testSingleLinkLeftRaw(): void {
     $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -93,8 +88,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
    *
    * Resolved by sub_process + migration_lookup + extract over `sys/id` in the
    * YAML.
-   *
-   * @covers ::flatten
    */
   public function testLinkArrayLeftRaw(): void {
     $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -106,8 +99,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
    * A RichText field passes through as the document AST, untouched.
-   *
-   * @covers ::flatten
    */
   public function testRichTextLeftAsAst(): void {
     $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -117,8 +108,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
    * A content-type mismatch skips the row (NULL).
-   *
-   * @covers ::flatten
    */
   public function testContentTypeFilterSkipsNonMatchingRow(): void {
     // hero1 is a heroSection; a blogPost-scoped flattener must skip it.
@@ -132,8 +121,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
 
   /**
    * Sys timestamps pass through as ISO 8601 strings; author link stays raw.
-   *
-   * @covers ::flatten
    */
   public function testExposesSysMetadata(): void {
     $row = (new ContentfulEntryFlattener('en-US', 'blogPost'))->flatten($this->blogPostEntry());
@@ -154,8 +141,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
    *
    * NULL feeds the documented `skip_on_empty` front-stop, which leaves
    * `created`/`changed` unset so Drupal defaults them to import time.
-   *
-   * @covers ::flatten
    */
   public function testSysMetadataNullWhenAbsent(): void {
     $entry = [
@@ -177,8 +162,6 @@ class ContentfulEntryFlattenerTest extends UnitTestCase {
    * The sys_* keys are set after the fields loop, so a space field literally
    * named `sys_created_at` is shadowed in the flattened row — the documented
    * precedence (ContentfulExport::fields()).
-   *
-   * @covers ::flatten
    */
   public function testSysMetadataWinsOverSameNamedField(): void {
     $entry = [

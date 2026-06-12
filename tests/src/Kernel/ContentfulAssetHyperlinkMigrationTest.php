@@ -11,6 +11,8 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\media\Entity\MediaType;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end: an inline asset-hyperlink resolves to the migrated file's URL.
@@ -28,9 +30,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  * that constructs the renderer the way create() does without the modules.
  * Private-scheme URLs are asserted at URL-shape level only (the fixture
  * stages public files); /system/files routing is core file's contract.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulAssetHyperlinkMigrationTest extends MigrateTestBase {
 
   /**

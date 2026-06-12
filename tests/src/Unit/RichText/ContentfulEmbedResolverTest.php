@@ -10,11 +10,14 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\migrate\MigrateLookupInterface;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\RichText\ContentfulEmbedResolver
- * @group contentful_migration
+ * Unit coverage for ContentfulEmbedResolver.
  */
+#[CoversClass(ContentfulEmbedResolver::class)]
+#[Group('contentful_migration')]
 class ContentfulEmbedResolverTest extends UnitTestCase {
 
   private const EMBED_MIGRATIONS = [
@@ -82,8 +85,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
    * First candidate hits: returns its entity_type + the loaded entity's UUID.
    *
    * Paragraph destination ids are [id, revision_id]; the id is taken.
-   *
-   * @covers ::resolve
    */
   public function testResolvesViaFirstCandidate(): void {
     $lookup = $this->makeLookup(['contentful_callout_card|callout1' => [['id' => 7, 'revision_id' => 9]]]);
@@ -97,8 +98,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
 
   /**
    * First candidate misses, second hits: falls through in configured order.
-   *
-   * @covers ::resolve
    */
   public function testFallsThroughToNextCandidate(): void {
     // callout_card misses post2; blog_post (a node) hits.
@@ -113,8 +112,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
 
   /**
    * LinkType dispatch: an Asset uses the Asset candidate list, not Entry's.
-   *
-   * @covers ::resolve
    */
   public function testDispatchesByLinkType(): void {
     $lookup = $this->makeLookup(['contentful_media|img1' => [['mid' => 3]]]);
@@ -128,8 +125,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
 
   /**
    * No candidate matches (not yet migrated) -> NULL, so the renderer omits.
-   *
-   * @covers ::resolve
    */
   public function testReturnsNullWhenNoCandidateMatches(): void {
     $resolver = $this->resolver($this->makeLookup([]), $this->makeEtm([]));
@@ -138,8 +133,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
 
   /**
    * An unconfigured linkType resolves to NULL without touching MigrateLookup.
-   *
-   * @covers ::resolve
    */
   public function testReturnsNullForUnconfiguredLinkType(): void {
     $lookup = $this->createMock(MigrateLookupInterface::class);
@@ -152,8 +145,6 @@ class ContentfulEmbedResolverTest extends UnitTestCase {
    * A lookup hit whose entity fails to load (deleted post-migration) -> NULL.
    *
    * Not a fatal error; the caller degrades gracefully.
-   *
-   * @covers ::resolve
    */
   public function testReturnsNullWhenEntityMissing(): void {
     $lookup = $this->makeLookup(['contentful_callout_card|callout1' => [['id' => 7, 'revision_id' => 9]]]);

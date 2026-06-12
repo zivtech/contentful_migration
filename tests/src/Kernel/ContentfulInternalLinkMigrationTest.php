@@ -11,6 +11,8 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\link\LinkItemInterface;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\migrate\Kernel\MigrateTestBase;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end coverage: a real migrate run resolves a reference to a link URI.
@@ -34,9 +36,9 @@ use Drupal\Tests\migrate\Kernel\MigrateTestBase;
  * resolver is entity-type-agnostic — it emits whatever entity_type the matched
  * candidate names — so Media/Paragraph targets follow the same path but are not
  * separately proven here.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulInternalLinkMigrationTest extends MigrateTestBase {
 
   /**

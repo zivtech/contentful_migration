@@ -8,11 +8,15 @@ use Drupal\contentful_migration\Plugin\migrate\process\ContentfulMediaBundle;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Row;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 
 /**
- * @coversDefaultClass \Drupal\contentful_migration\Plugin\migrate\process\ContentfulMediaBundle
- * @group contentful_migration
+ * Unit coverage for ContentfulMediaBundle process plugin.
  */
+#[CoversClass(ContentfulMediaBundle::class)]
+#[Group('contentful_migration')]
 class ContentfulMediaBundleTest extends UnitTestCase {
 
   /**
@@ -30,10 +34,8 @@ class ContentfulMediaBundleTest extends UnitTestCase {
 
   /**
    * Default map: prefix and exact matches resolve to the right bundle.
-   *
-   * @dataProvider defaultMapCases
-   * @covers ::transform
    */
+  #[DataProvider('defaultMapCases')]
   public function testDefaultMap(string $mime, string $expected): void {
     $this->assertSame($expected, $this->transform($mime));
   }
@@ -55,8 +57,6 @@ class ContentfulMediaBundleTest extends UnitTestCase {
 
   /**
    * Unknown / empty MIME falls back to the default bundle.
-   *
-   * @covers ::transform
    */
   public function testFallback(): void {
     $this->assertSame('document', $this->transform('application/zip'), 'Unmapped MIME -> default fallback.');
@@ -66,8 +66,6 @@ class ContentfulMediaBundleTest extends UnitTestCase {
 
   /**
    * A configured map and default override the built-ins; exact beats prefix.
-   *
-   * @covers ::transform
    */
   public function testConfiguredOverrides(): void {
     $config = [

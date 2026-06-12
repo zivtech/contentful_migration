@@ -15,6 +15,8 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * End-to-end: a real migrate run stages Contentful assets into image media.
@@ -35,9 +37,9 @@ use GuzzleHttp\Psr7\Response;
  * map to other bundles (pdf -> document, video, audio) are covered by
  * ContentfulMediaBundleTest, not here, to avoid the cross-bundle source-field
  * problem in a single migration.
- *
- * @group contentful_migration
  */
+#[Group('contentful_migration')]
+#[RunTestsInSeparateProcesses]
 class ContentfulAssetMigrationTest extends MigrateTestBase {
 
   /**
