@@ -1,0 +1,53 @@
+# Fixture migration for JsonApiMapKernelTest: covers sub_process + nested
+# migration_lookup + destination.default_bundle + identity field detection +
+# richtext pipeline + path/alias (pipeline form). All shapes the unit tests
+# exercise synthetically are here for kernel-level discovery proof.
+id: cf_jsonapi_map_fixture
+label: 'Test: fixture for jsonapi-map classification'
+source:
+  plugin: contentful_export
+  path: 'public://cf-export.json'
+  selector: entries
+  content_type: article
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: article
+  title: title
+  field_contentful_id: sys_id
+  field_hero_image:
+    plugin: migration_lookup
+    migration: cf_media
+    source: heroImage/sys/id
+  field_sections:
+    plugin: sub_process
+    source: sections
+    process:
+      ids:
+        plugin: migration_lookup
+        migration: [cf_card]
+        source: sys/id
+      target_id:
+        plugin: extract
+        source: '@ids'
+        index: [0]
+  'body/value':
+    plugin: contentful_rich_text
+    source: body
+    embed_migrations:
+      Entry:
+        - { migration: cf_card, entity_type: node }
+  'body/format':
+    plugin: default_value
+    default_value: contentful_embed
+  'path/alias':
+    plugin: skip_on_empty
+    method: process
+    source: slug
+destination:
+  plugin: 'entity:node'
+  default_bundle: article
