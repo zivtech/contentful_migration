@@ -2,9 +2,13 @@
 .DS_Store
 
 # Internal development scaffolding — kept locally, excluded from the contrib repo.
-# (Session handoff notes, corpus-profiling dev validators with non-portable
-# paths, the one-off Rich Text spike, and analyzer/planner skill-eval goldens.)
+# (Session handoff notes, advisor implementation plans, corpus-profiling dev
+# validators with non-portable paths, the one-off Rich Text spike, and
+# analyzer/planner skill-eval goldens.)
+# Exception: spike/cda-emulation/DECISION.md is force-added — a shipped
+# decision record (tracked files are unaffected by these rules).
 /HANDOFF.md
+/plans/
 /tools/
 /spike/
 /tests/fixtures/README.md
