@@ -1,0 +1,21 @@
+# Identity-preservation pattern under test: sys_id -> field_contentful_id.
+# Mirrors the PATTERN documented in migrations/examples/contentful_blog_post.yml.
+id: cf_identity
+label: 'Test: blogPost sys_id -> field_contentful_id'
+source:
+  plugin: contentful_export
+  path: 'public://cf-export.json'
+  selector: entries
+  content_type: blogPost
+  locale: en-US
+  ids:
+    sys_id:
+      type: string
+process:
+  type:
+    plugin: default_value
+    default_value: blog_post
+  title: title
+  field_contentful_id: sys_id
+destination:
+  plugin: 'entity:node'

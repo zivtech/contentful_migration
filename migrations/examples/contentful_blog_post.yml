@@ -17,6 +17,15 @@ source:
 process:
   title: title
   'path/alias': slug
+  # PATTERN: identity preservation — keep each entry's Contentful id on the
+  # entity itself, not only in the migrate map (infrastructure that a
+  # migrate:reset erases and JSON:API never exposes). A decoupled consumer can
+  # then resolve old Contentful ids forever:
+  #   GET /jsonapi/node/blog_post?filter[field_contentful_id]=<sys.id>
+  # Create field_contentful_id (plain "Text (plain)" / string, default length)
+  # on each destination bundle first. Drop this mapping if you will never need
+  # to look entities up by their Contentful id.
+  field_contentful_id: sys_id
   # PATTERN: authorship timestamps — sys.createdAt/updatedAt (ISO 8601, present
   # in 209/211 profiled real exports) -> created/changed (unix). Core plugins
   # only. skip_on_empty leaves the property unset on a dateless row, so Drupal
