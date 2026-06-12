@@ -19,6 +19,7 @@ from an approved `contentful-mapping.yml`.
 | Self-referential type → **Drupal menu** (cycle resolved natively) | `contentful_navigation.yml` | 017 |
 | **Two-pass** body — Pass A (entities, no body) | `contentful_blog_post.yml` | synthetic |
 | **Authorship timestamps** (`created`/`changed` from sys, core plugins) | `contentful_blog_post.yml` | synthetic |
+| **Identity preservation** (`sys_id` → `field_contentful_id`, durable JSON:API lookup) | `contentful_blog_post.yml` | synthetic |
 | **Author → uid** (opt-in: blocked stubs + `migration_lookup`, or `static_map`) | `contentful_user.yml` + snippet in `contentful_blog_post.yml` | users.json (`--include-users`) |
 | **Two-pass** body — Pass B (**embed resolution**) | `contentful_blog_post_body.yml` | synthetic |
 | **i18n** translation pass (`translations: true`) | `contentful_blog_post_es.yml` | synthetic |
