@@ -1,0 +1,47 @@
+# PATTERN: self-referential type -> Drupal menu, PASS B.
+# Updates existing menu links from Pass A to attach dropdown parents only after
+# the full navigationLink map exists.
+id: contentful_navigation_parent
+label: 'Contentful navigationLink -> menu link parents (Pass B)'
+migration_group: contentful
+source:
+  plugin: contentful_export
+  path: 'private://contentful/export.json'
+  selector: entries
+  content_type: navigationLink
+  constants:
+    menu_name: main
+    parent_link_path: ''
+  ids:
+    sys_id:
+      type: string
+process:
+  id:
+    - plugin: migration_lookup
+      migration: contentful_navigation
+      source: sys_id
+      no_stub: true
+    - plugin: skip_on_empty
+      method: row
+      message: 'Navigation link Pass A did not migrate.'
+  title: label
+  menu_name:
+    plugin: default_value
+    default_value: main
+  'link/uri':
+    plugin: contentful_internal_link
+    source: to
+  parent:
+    plugin: menu_link_parent
+    source:
+      - _parent_sys_id
+      - constants/menu_name
+      - constants/parent_link_path
+    lookup_migrations:
+      - contentful_navigation
+destination:
+  plugin: 'entity:menu_link_content'
+  default_bundle: menu_link_content
+migration_dependencies:
+  required:
+    - contentful_navigation

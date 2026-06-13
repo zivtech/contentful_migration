@@ -90,7 +90,9 @@ comments in `contentful_migration.info.yml`.
      changes).
    - Multi-value Paragraph references use the idiomatic core
      [#2890844](https://www.drupal.org/project/drupal/issues/2890844) workaround
-     (`sub_process` + `migration_lookup` + `extract`) — no custom plugin needed.
+     (`sub_process` + no-stub `migration_lookup` + `skip_on_empty` row guard
+     + `extract`) — no custom plugin needed, and unresolved refs never become
+     `entity_reference_revisions` NULL writes.
 
 The migration targets standard Drupal entities (nodes, Paragraphs, Media,
 menus). How you present them — decoupled, recoupled, or semi-decoupled — is a
@@ -101,8 +103,9 @@ migration is identical across all three.
 
 A naive Rich Text migration loses content silently. `contentful/rich-text`'s
 default embed renderers emit Contentful-id placeholders (`<div>Entry#ID</div>`) —
-visible garbage in Drupal, not empty — its default catch-all silently drops
-unknown node types, and the Parser throws on an unrecognised node type.
+visible garbage in Drupal, not empty. And an unrecognised node type makes the
+Parser throw at parse time (`InvalidArgumentException`) — which, uncaught, fails
+the whole migration row.
 
 This module owns the full renderer list: custom `NodeRenderer`s resolve `sys.id`
 → Drupal entity via the migrate map and emit clean embed tokens, ending in a
@@ -185,12 +188,28 @@ the toolkit emits:
 - asset → Media with MIME → bundle mapping
 - a two-pass Rich Text body with embed resolution
 - a translation pass
-- a self-referential type resolved to a Drupal menu
+- a self-referential type resolved to a Drupal menu with a parent-attachment pass
 
 Rich Text embed resolution and internal-link rewriting are configured per
 migration via an `embed_migrations` / `link_migrations` map — each keys a
 Contentful `linkType` to an ordered list of candidate migrations to resolve
 against. See `contentful_blog_post_body.yml` (Pass B) for the embed map.
+
+### Reference safety
+
+Reference lookups in the examples disable Migrate stubs (`no_stub: true`).
+That is intentional. A Contentful reference that did not migrate should be
+empty, skipped, or logged by the mapping, not materialized as a half-empty
+Drupal entity. Multi-value Paragraph references add a `skip_on_empty` row
+guard inside `sub_process`, so a single unresolved child is dropped before
+`extract` reads `target_id` / `target_revision_id`.
+
+Self-referential structures use the same rule. The navigation example creates
+menu links in Pass A and attaches parents in Pass B with core
+`menu_link_parent`; it does not rely on same-migration row order. That keeps
+recursive source graphs out of Drupal default-content `_meta.depends` cycle
+territory and avoids the `entity_reference_revisions` NULL fatal class exposed
+by upstream issue-queue testing.
 
 ### Preserving Contentful identity
 
@@ -220,7 +239,7 @@ reference templates, the same adapt-these contract as `migrations/examples/`).
   [`modes/examples/decoupled/`](modes/examples/decoupled/).
 - **Recoupled** — Drupal renders, against a theme you provide. The
   [`editorInterfaces` → widget map](modes/examples/recoupled/WIDGET-MAP.md)
-  derives field/widget/formatter choices from data 208 of 211 profiled exports
+  derives field/widget/formatter choices from data 211 of 218 profiled exports
   already carry, with four worked display templates:
   [`modes/examples/recoupled/`](modes/examples/recoupled/).
 - **Semi-decoupled** — Drupal shell + JS-hydrated islands. An architecture
@@ -279,7 +298,7 @@ is deliberately not a sync engine.
 Entry timestamps migrate out of the box (`sys.createdAt`/`updatedAt` →
 `created`/`changed`, two core process plugins). Authors need one more step:
 the export JSON carries only **opaque author ids** — bare
-`{sys:{linkType:User,id}}` links, present in 204 of 211 profiled exports, with
+`{sys:{linkType:User,id}}` links, present in 204 of 218 profiled exports, with
 zero user objects in any of them. Two supported paths, smallest first:
 
 - **`static_map` (no fetch).** Map the handful of author ids you care about to
@@ -379,19 +398,19 @@ already the right tools.
 ## Not in scope
 
 Each exclusion below is a deliberate decision, not an omission — with the
-evidence it rests on (211 real space exports profiled):
+evidence it rests on (218 real space exports profiled):
 
 - **Live/bidirectional sync.** One-way migration only.
   [Repeatable / delta imports](#repeatable--delta-imports) cover the re-export →
   re-import case; a live two-way bridge is a different product.
 - **Full edit/revision history.** Exports carry only version *counters* — none
-  of the 211 profiled exports contain revision snapshots (recovering history
+  of the 218 profiled exports contain revision snapshots (recovering history
   needs per-entry Management-API calls). Authorship **metadata** is migratable:
   `sys.createdAt`/`updatedAt` map to `created`/`changed` with two core process
   plugins (see `migrations/examples/contentful_blog_post.yml`), and
   [author attribution](#author-attribution-opt-in) is supported as an opt-in
   export step.
-- **Roles/permissions.** Role definitions appear in most real exports (154/211)
+- **Roles/permissions.** Role definitions appear in most real exports (155/218)
   — the exclusion is not data availability. Contentful's policy rules do not
   map onto Drupal's permission model, and auto-generating roles risks granting
   more than intended. Model roles deliberately in Drupal.

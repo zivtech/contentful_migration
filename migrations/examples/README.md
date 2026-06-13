@@ -14,9 +14,10 @@ from an approved `contentful-mapping.yml`.
 |---|---|---|
 | Asset → Media (handoff, MIME→bundle) | `contentful_media.yml` | 017 |
 | Leaf Paragraph (`entity_reference_revisions` dest) | `contentful_button.yml` | 017 |
-| Nested Paragraph + **multi-ref** (`sub_process`, #2890844) | `contentful_column.yml` | 017 |
+| Nested Paragraph + **multi-ref** (`sub_process`, no-stub lookup, row-skip guard, #2890844) | `contentful_column.yml` | 017 |
 | Node + multi-ref sections + **seo→metatag in-host** + path alias | `contentful_page.yml` | 017 |
-| Self-referential type → **Drupal menu** (cycle resolved natively) | `contentful_navigation.yml` | 017 |
+| Self-referential type → **Drupal menu** Pass A (links, no parent) | `contentful_navigation.yml` | 017 |
+| Self-referential type → **Drupal menu** Pass B (parent attachment via `menu_link_parent`) | `contentful_navigation_parent.yml` | 017 |
 | **Two-pass** body — Pass A (entities, no body) | `contentful_blog_post.yml` | synthetic |
 | **Authorship timestamps** (`created`/`changed` from sys, core plugins) | `contentful_blog_post.yml` | synthetic |
 | **Identity preservation** (`sys_id` → `field_contentful_id`, durable JSON:API lookup) | `contentful_blog_post.yml` | synthetic |
@@ -42,7 +43,7 @@ migration (noted in `contentful_navigation.yml`).
 
 017 subtree: `contentful_media` → `contentful_button` (+ other leaf paragraphs)
 → `contentful_column` → section paragraphs → `contentful_page` →
-`contentful_navigation`.
+`contentful_navigation` → `contentful_navigation_parent`.
 
 synthetic: `contentful_media` → `contentful_callout_card`/`contentful_hero_section`
 → `contentful_blog_post` (Pass A) → `contentful_blog_post_body` (Pass B) →
@@ -61,7 +62,8 @@ These patterns are exercised end-to-end by the module's kernel tests — a real
 two-pass Migrate run over the test fixtures that asserts embed resolution,
 asset → Media staging with hash dedupe, internal-link rewriting, and the
 author-attribution chain (blocked stubs, departed-member and no-author
-degrades). See `tests/src/Kernel/`. The example YAMLs above are the structural reference those
-discoverable test migrations are modelled on: acyclic dependencies, two-pass
-integrity, multi-ref `sub_process` shape (core #2890844), and translation-pass
-shape.
+degrades). See `tests/src/Kernel/`. The example YAMLs above are the structural
+reference those discoverable test migrations are modelled on: acyclic
+dependencies, two-pass integrity, multi-ref `sub_process` shape with no-stub
+row guards (core #2890844), menu parent attachment via `menu_link_parent`, and
+translation-pass shape.

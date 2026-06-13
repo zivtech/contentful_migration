@@ -27,6 +27,13 @@ class ContentfulRichTextTest extends UnitTestCase {
   public const REAL_ENTRY_SYS_ID = '45mD46Irkt50j4i2IqcSa2';
 
   /**
+   * Real embedded-entry-inline sys.id present in the 039 fixture AST.
+   *
+   * The inline-embedded target is a `button` entry inside a blockCopy body.
+   */
+  public const REAL_INLINE_ENTRY_SYS_ID = '1Tv28k2hEXIfgASOY9XyIP';
+
+  /**
    * Builds a capturing logger whose records are assertable in tests.
    */
   private function makeLogger(): AbstractLogger {
@@ -109,6 +116,46 @@ class ContentfulRichTextTest extends UnitTestCase {
       'Embedded entry should resolve to a Drupal entity embed token.',
     );
     $this->assertStringNotContainsString('<div>Entry#', $html, 'The library default placeholder must be overridden.');
+  }
+
+  /**
+   * The real embedded-entry-INLINE from corpus 039 resolves to an embed token.
+   *
+   * Companion to the block case above: an entry embedded *inline* in copy
+   * (039's `button` inside a paragraph) must resolve to the same Drupal entity
+   * embed token, not fall through to the library's `Entry#ID` placeholder.
+   * `embedded-entry-inline` is in KNOWN_NODE_TYPES (so it is not even logged as
+   * unknown), yet no Drupal override renderer handles it — so without a
+   * DrupalEmbeddedEntryInline renderer the inline target is silently degraded.
+   */
+  public function testResolvesInlineEmbeddedEntryFromRealAst(): void {
+    $ast = json_decode(file_get_contents(__DIR__ . '/../../../fixtures/real-ast-039-inline.json'), TRUE);
+    $resolver = new class() implements ContentfulEmbedResolverInterface {
+
+      /**
+       * {@inheritdoc}
+       */
+      public function resolve(string $sysId, string $linkType): ?array {
+        return $sysId === ContentfulRichTextTest::REAL_INLINE_ENTRY_SYS_ID
+          ? ['entity_type' => 'node', 'uuid' => 'uuid-inline-button']
+          : NULL;
+      }
+
+    };
+
+    $html = $this->transform($this->makePlugin($resolver, $this->makeLogger()), $ast);
+
+    $this->assertStringContainsString(
+      'data-entity-uuid="uuid-inline-button"',
+      $html,
+      'An inline-embedded entry must resolve to a Drupal entity embed token.',
+    );
+    // The library-default placeholder (the raw sys.id) must be gone.
+    $this->assertStringNotContainsString(
+      ContentfulRichTextTest::REAL_INLINE_ENTRY_SYS_ID,
+      $html,
+      'The raw Contentful sys.id placeholder must not survive to output.',
+    );
   }
 
   /**

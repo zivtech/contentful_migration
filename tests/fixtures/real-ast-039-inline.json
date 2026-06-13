@@ -1,0 +1,62 @@
+{
+  "nodeType": "document",
+  "data": {},
+  "content": [
+    {
+      "nodeType": "heading-1",
+      "content": [
+        {
+          "nodeType": "text",
+          "value": "Heya World",
+          "marks": [],
+          "data": {}
+        }
+      ],
+      "data": {}
+    },
+    {
+      "nodeType": "embedded-asset-block",
+      "content": [],
+      "data": {
+        "target": {
+          "sys": {
+            "id": "5pfE1GW8MNgYGTdRYJ8lWq",
+            "type": "Link",
+            "linkType": "Asset"
+          }
+        }
+      }
+    },
+    {
+      "nodeType": "paragraph",
+      "content": [
+        {
+          "nodeType": "text",
+          "value": "",
+          "marks": [],
+          "data": {}
+        },
+        {
+          "nodeType": "embedded-entry-inline",
+          "content": [],
+          "data": {
+            "target": {
+              "sys": {
+                "id": "1Tv28k2hEXIfgASOY9XyIP",
+                "type": "Link",
+                "linkType": "Entry"
+              }
+            }
+          }
+        },
+        {
+          "nodeType": "text",
+          "value": "",
+          "marks": [],
+          "data": {}
+        }
+      ],
+      "data": {}
+    }
+  ]
+}

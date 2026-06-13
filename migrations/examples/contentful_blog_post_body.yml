@@ -18,9 +18,13 @@ source:
       type: string
 process:
   nid:
-    plugin: migration_lookup
-    migration: contentful_blog_post       # target the node created in Pass A
-    source: sys_id
+    - plugin: migration_lookup
+      migration: contentful_blog_post       # target the node created in Pass A
+      source: sys_id
+      no_stub: true
+    - plugin: skip_on_empty
+      method: row
+      message: 'Contentful blogPost Pass A did not migrate.'
   'body/value':
     plugin: contentful_rich_text           # AST -> HTML + embed token resolution
     source: body

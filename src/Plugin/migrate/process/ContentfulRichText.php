@@ -13,6 +13,7 @@ use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
 use Drupal\contentful_migration\RichText\DrupalAssetHyperlink;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedAssetBlock;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedEntryBlock;
+use Drupal\contentful_migration\RichText\DrupalEmbeddedEntryInline;
 use Drupal\contentful_migration\RichText\DrupalEntryHyperlink;
 use Drupal\contentful_migration\RichText\SysIdLinkResolver;
 use Drupal\Core\Entity\EntityRepositoryInterface;
@@ -36,9 +37,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *    (DrupalEntryHyperlink) and asset-hyperlink to link the migrated file
  *    when media + file are installed, degrading to plain text when they are
  *    not (DrupalAssetHyperlink).
- *  - unknown node types are silently dropped by the default CatchAll; we walk
- *    the AST and log any node type the library doesn't handle, so loss is
- *    visible.
+ *  - an unknown node type makes the contentful/rich-text Parser throw
+   *    InvalidArgumentException at parse time (it does NOT silently drop or
+   *    reach a CatchAll renderer — Parser::parseLocalized()); we pre-walk the
+   *    AST to log the offending type, then catch the throw and degrade the
+   *    whole body to empty — visible in the log, never a silent partial loss.
+   *    (The library's
+ *    CatchAll renderer is a render-stage fallback for parsed-but-unrendered
+ *    nodes, a separate path that unknown node types never reach.)
  *
  * @code
  * body/value:
@@ -58,7 +64,9 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
   /**
    * Node types the contentful/rich-text library renders natively.
    *
-   * Anything else is dropped by the default CatchAll, so we log it.
+   * Anything else makes the Parser throw at parse time; logUnknownNodeTypes()
+   * logs the offending type first, so it is visible before we catch and
+   * degrade.
    */
   private const KNOWN_NODE_TYPES = [
     'document', 'paragraph', 'text', 'hr', 'blockquote', 'hyperlink',
@@ -153,6 +161,7 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
     // library's renderers.
     $renderer = new Renderer([
       new DrupalEmbeddedEntryBlock($this->resolver, $this->logger),
+      new DrupalEmbeddedEntryInline($this->resolver, $this->logger),
       new DrupalEmbeddedAssetBlock($this->resolver, $this->logger),
       new DrupalEntryHyperlink(
         $this->resolver,

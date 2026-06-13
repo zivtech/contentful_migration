@@ -23,18 +23,30 @@ process:
     plugin: migration_lookup
     migration: cf_media
     source: heroImage/sys/id
+    no_stub: true
   field_sections:
     plugin: sub_process
     source: sections
     process:
       ids:
-        plugin: migration_lookup
-        migration: [cf_card]
-        source: sys/id
+        - plugin: skip_on_empty
+          method: row
+          source: sys/id
+          message: 'Fixture section reference has no sys.id.'
+        - plugin: migration_lookup
+          migration: [cf_card]
+          no_stub: true
+        - plugin: skip_on_empty
+          method: row
+          message: 'Fixture section reference did not migrate.'
       target_id:
         plugin: extract
         source: '@ids'
         index: [0]
+      target_revision_id:
+        plugin: extract
+        source: '@ids'
+        index: [1]
   'body/value':
     plugin: contentful_rich_text
     source: body

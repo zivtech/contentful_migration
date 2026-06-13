@@ -18,15 +18,25 @@ process:
     plugin: skip_on_empty
     method: process
     source: slug
-  # multi-value paragraph reference (core #2890844: migration_lookup + extract)
+  # multi-value paragraph reference (core #2890844: migration_lookup + extract).
+  # no_stub + skip_on_empty(row) is load-bearing: a missing/cyclic child ref
+  # skips this one item inside sub_process instead of creating a stub or
+  # passing NULL into entity_reference_revisions.
   field_sections:
     plugin: sub_process
     source: sections                     # raw [{sys:{id}}, …] left by the source plugin
     process:
       ids:
-        plugin: migration_lookup
-        migration: [contentful_section_grid, contentful_fifty_fifty, contentful_text_section, contentful_wide_image]
-        source: sys/id
+        - plugin: skip_on_empty
+          method: row
+          source: sys/id
+          message: 'Contentful section reference has no sys.id.'
+        - plugin: migration_lookup
+          migration: [contentful_section_grid, contentful_fifty_fifty, contentful_text_section, contentful_wide_image]
+          no_stub: true
+        - plugin: skip_on_empty
+          method: row
+          message: 'Referenced Contentful section was not migrated.'
       target_id:
         plugin: extract
         source: '@ids'

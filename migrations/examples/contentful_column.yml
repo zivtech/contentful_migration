@@ -1,7 +1,9 @@
 # PATTERN: nested Paragraph + MULTI-VALUE reference (core #2890844 workaround). Source: 017.
 # column.content is Array<Link Entry> -> many child paragraphs. The source plugin leaves
 # the raw link array; sub_process iterates it and resolves each ref idiomatically with
-# migration_lookup (a paragraph map returns [id, revision_id]) + extract.
+# migration_lookup (a paragraph map returns [id, revision_id]) + extract. no_stub +
+# skip_on_empty(row) prevents missing/cyclic refs from becoming stubs or NULL
+# entity_reference_revisions writes.
 id: contentful_column
 label: 'Contentful column -> Paragraph (nested)'
 migration_group: contentful
@@ -19,9 +21,16 @@ process:
     source: content                     # raw [{sys:{id}}, …] left by the source plugin
     process:
       ids:
-        plugin: migration_lookup
-        migration: [contentful_button, contentful_list, contentful_center_aligned_text, contentful_video]
-        source: sys/id
+        - plugin: skip_on_empty
+          method: row
+          source: sys/id
+          message: 'Contentful child reference has no sys.id.'
+        - plugin: migration_lookup
+          migration: [contentful_button, contentful_list, contentful_center_aligned_text, contentful_video]
+          no_stub: true
+        - plugin: skip_on_empty
+          method: row
+          message: 'Referenced Contentful child paragraph was not migrated.'
       target_id:
         plugin: extract
         source: '@ids'

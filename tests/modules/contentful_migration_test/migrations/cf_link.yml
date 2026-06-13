@@ -17,9 +17,13 @@ source:
       type: string
 process:
   nid:
-    plugin: migration_lookup
-    migration: cf_link_post
-    source: sys_id
+    - plugin: migration_lookup
+      migration: cf_link_post
+      source: sys_id
+      no_stub: true
+    - plugin: skip_on_empty
+      method: row
+      message: 'cf_link_post Pass A did not migrate.'
   type:
     plugin: default_value
     default_value: blog_post

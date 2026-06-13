@@ -1,10 +1,10 @@
-# PATTERN: self-referential type -> Drupal MENU (resolves the cycle natively). Source: 017.
-# navigationLink.dropdownLinks is a self-reference (the only cycle in 017). Modelling it
-# as menu_link_content means Drupal's menu hierarchy handles nesting — no break-then-attach
-# needed. 'parent' resolves via migration_lookup to THIS migration (allowed: self-ref by id,
-# not a graph cycle, because the parent row already exists when the child is processed).
+# PATTERN: self-referential type -> Drupal menu, PASS A. Source: 017.
+# navigationLink.dropdownLinks is a self-reference (the only cycle in 017).
+# Pass A creates every menu_link_content without parent; Pass B attaches parents
+# after all links exist. Do not self-lookup parent here: row order is not a
+# contract, and unresolved lookups can otherwise create stubs or NULL refs.
 id: contentful_navigation
-label: 'Contentful navigationLink -> menu links'
+label: 'Contentful navigationLink -> menu links (Pass A: no parent)'
 migration_group: contentful
 source:
   plugin: contentful_export
@@ -23,10 +23,6 @@ process:
   'link/uri':
     plugin: contentful_internal_link      # sys.id -> internal:/node/NID via page migrate map
     source: to
-  parent:
-    plugin: migration_lookup
-    migration: contentful_navigation       # self-lookup for dropdown hierarchy
-    source: _parent_sys_id                 # set in prepareRow() from the parent's dropdownLinks
 destination:
   plugin: 'entity:menu_link_content'
   default_bundle: menu_link_content
