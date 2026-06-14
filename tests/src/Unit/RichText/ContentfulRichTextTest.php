@@ -159,9 +159,13 @@ class ContentfulRichTextTest extends UnitTestCase {
   }
 
   /**
-   * Unknown node types are logged (visible), not silently dropped.
+   * An unknown node type is dropped and logged — the rest of the body survives.
+   *
+   * The Parser throws on any unmapped nodeType, which would empty the whole
+   * field. Pre-sanitization removes only the offending node (and its subtree),
+   * logs it, and leaves every sibling intact.
    */
-  public function testLogsUnknownNodeType(): void {
+  public function testDropsUnknownNodeButPreservesRest(): void {
     $logger = $this->makeLogger();
     $resolver = new class() implements ContentfulEmbedResolverInterface {
 
@@ -182,16 +186,20 @@ class ContentfulRichTextTest extends UnitTestCase {
           'nodeType' => 'paragraph',
           'data' => [],
           'content' => [
-          ['nodeType' => 'text', 'value' => 'hi', 'marks' => [], 'data' => []],
+            ['nodeType' => 'text', 'value' => 'kept text', 'marks' => [], 'data' => []],
           ],
         ],
       ],
     ];
 
-    $this->transform($this->makePlugin($resolver, $logger), $ast);
+    $html = $this->transform($this->makePlugin($resolver, $logger), $ast);
 
-    $found = array_filter($logger->records, fn($r) => str_contains($r, 'mystery-widget'));
-    $this->assertNotEmpty($found, 'An unknown node type must be logged, not silently dropped.');
+    $this->assertNotEmpty(
+      array_filter($logger->records, fn($r) => str_contains($r, 'mystery-widget')),
+      'The unknown node type must be logged.',
+    );
+    $this->assertStringContainsString('kept text', $html, 'Sibling content must survive an unknown node.');
+    $this->assertStringNotContainsString('mystery-widget', $html, 'The unknown node must not render.');
   }
 
   /**

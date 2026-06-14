@@ -37,14 +37,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *    (DrupalEntryHyperlink) and asset-hyperlink to link the migrated file
  *    when media + file are installed, degrading to plain text when they are
  *    not (DrupalAssetHyperlink).
- *  - an unknown node type makes the contentful/rich-text Parser throw
-   *    InvalidArgumentException at parse time (it does NOT silently drop or
-   *    reach a CatchAll renderer — Parser::parseLocalized()); we pre-walk the
-   *    AST to log the offending type, then catch the throw and degrade the
-   *    whole body to empty — visible in the log, never a silent partial loss.
-   *    (The library's
- *    CatchAll renderer is a render-stage fallback for parsed-but-unrendered
- *    nodes, a separate path that unknown node types never reach.)
+ *  - an unknown node type would make the contentful/rich-text Parser throw
+ *    InvalidArgumentException at parse time (Parser::parseLocalized()), which
+ *    would empty the whole field. So transform() pre-sanitizes the AST first
+ *    (sanitizeAst()): it drops and logs only the unknown node and its subtree,
+ *    leaving every sibling intact — a localized drop, never a silent or
+ *    whole-body loss. The library's CatchAll renderer is a separate
+ *    render-stage path that unknown node types never reach. Marks are not
+ *    sanitized — only node types.
  *
  * @code
  * body/value:
@@ -64,9 +64,9 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
   /**
    * Node types the contentful/rich-text library renders natively.
    *
-   * Anything else makes the Parser throw at parse time; logUnknownNodeTypes()
-   * logs the offending type first, so it is visible before we catch and
-   * degrade.
+   * Anything else makes the Parser throw at parse time; sanitizeAst() drops and
+   * logs it before parsing, so one unknown node degrades to a localized drop
+   * rather than emptying the whole body.
    */
   private const KNOWN_NODE_TYPES = [
     'document', 'paragraph', 'text', 'hr', 'blockquote', 'hyperlink',
@@ -139,13 +139,12 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
       return '';
     }
 
-    // Log any node types the library doesn't recognise. NB: the
-    // contentful/rich-text Parser THROWS InvalidArgumentException on an
-    // unrecognised node type —
-    // it does not silently drop or reach a CatchAll. So we log the offending
-    // type for visibility, then degrade gracefully on parse failure rather than
-    // letting one unknown node crash the entire migration.
-    $this->logUnknownNodeTypes($value);
+    // The Parser throws on any unmapped nodeType, which would empty the whole
+    // field. Pre-sanitize first: drop (and log) only the unknown nodes so every
+    // sibling survives. The try/catch below stays as a belt-and-suspenders
+    // fallback for any parse failure sanitizing doesn't cover (e.g. unknown
+    // marks, which are not sanitized here).
+    $value = $this->sanitizeAst($value) ?? $value;
 
     $parser = new Parser(new SysIdLinkResolver());
     try {
@@ -175,18 +174,30 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
   }
 
   /**
-   * Recursively walks the raw AST, logging node types the library won't render.
+   * Strips nodes the library can't parse, so one unknown node degrades to a
+   * localized drop instead of throwing out the whole body.
+   *
+   * The contentful/rich-text Parser throws on any unmapped nodeType. Removing
+   * the offending node (and its subtree) and logging it keeps every sibling
+   * renderable. Returns the filtered node, or NULL if the node itself is
+   * unknown (the caller drops it). Marks are not sanitized — only node types.
    */
-  private function logUnknownNodeTypes(array $node): void {
+  private function sanitizeAst(array $node): ?array {
     $type = $node['nodeType'] ?? NULL;
     if ($type !== NULL && !in_array($type, self::KNOWN_NODE_TYPES, TRUE)) {
-      $this->logger->warning('Unknown Rich Text node type "@type" encountered; it will not be rendered.', ['@type' => $type]);
+      $this->logger->warning('Dropping unknown Rich Text node type "@type"; the rest of the body is preserved.', ['@type' => $type]);
+      return NULL;
     }
-    foreach ($node['content'] ?? [] as $child) {
-      if (is_array($child)) {
-        $this->logUnknownNodeTypes($child);
+    if (!empty($node['content']) && is_array($node['content'])) {
+      $kept = [];
+      foreach ($node['content'] as $child) {
+        if (is_array($child) && ($clean = $this->sanitizeAst($child)) !== NULL) {
+          $kept[] = $clean;
+        }
       }
+      $node['content'] = $kept;
     }
+    return $node;
   }
 
 }
