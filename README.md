@@ -103,9 +103,10 @@ migration is identical across all three.
 
 A naive Rich Text migration loses content silently. `contentful/rich-text`'s
 default embed renderers emit Contentful-id placeholders (`<div>Entry#ID</div>`) —
-visible garbage in Drupal, not empty. And an unrecognised node type makes the
-Parser throw at parse time (`InvalidArgumentException`) — which, uncaught, fails
-the whole migration row.
+visible garbage in Drupal, not empty. And an unrecognised node type would make
+the Parser throw at parse time (`InvalidArgumentException`) — so the plugin
+pre-sanitizes the AST first, dropping (and logging) only the unknown node and
+keeping the rest of the body.
 
 This module owns the full renderer list: custom `NodeRenderer`s resolve `sys.id`
 → Drupal entity via the migrate map and emit clean embed tokens, ending in a
@@ -326,7 +327,7 @@ private-by-default export dir); a member whose name collides with an
 **existing site user** fails that row loudly (rename the account or
 `static_map` that member). Entries whose author **left the space** (id
 absent from users.json) fall back to anonymous explicitly; entries with **no
-author link at all** (rare — 7 of 211 profiled exports lack `createdBy`)
+author link at all** (uncommon — 14 of 218 profiled exports lack `createdBy`)
 leave `uid` unset, which Drupal fills with the importing user: anonymous
 under a standard `drush migrate:import`, but a logged-in admin running
 imports through a UI (e.g. migrate_tools) would own them. Neither path is

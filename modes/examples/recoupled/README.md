@@ -8,7 +8,7 @@ This mode has the richest generic/per-space split, and this directory ships
 the generic half:
 
 - **[`WIDGET-MAP.md`](WIDGET-MAP.md)** — the `editorInterfaces` → Drupal
-  field/widget/formatter derivation (grounded in 208/211 profiled exports
+  field/widget/formatter derivation (grounded in 211/218 profiled exports
   carrying `editorInterfaces`). This is the load-bearing artifact: the display
   config for any given space is *derived* from data the export already
   contains.

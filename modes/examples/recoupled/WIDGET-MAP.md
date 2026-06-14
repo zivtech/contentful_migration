@@ -3,7 +3,7 @@
 Contentful exports carry the editor configuration alongside the content model:
 `editorInterfaces.controls[]` pairs each field (`fieldId`) with the widget an
 editor used (`widgetId`), and `contentTypes` carries each field's type. In the
-profiled corpus this data is nearly universal — **208 of 211 real space
+profiled corpus this data is nearly universal — **211 of 218 real space
 exports** include `editorInterfaces` — which makes the Drupal display config
 largely *derivable* rather than designed from scratch.
 
