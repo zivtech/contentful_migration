@@ -95,6 +95,9 @@ class ContentfulMigrateDrushCommands extends DrushCommands {
     $jsonPath = $this->runExport((string) $options['bin'], $config);
     // Users are fetched before the summary so a fetch failure is loud and
     // the summary never reports a half-staged state.
+    if (!empty($options['include-users']) && self::isWebAccessibleExportDir($exportDirOption)) {
+      $this->io()->warning('users.json (member names and emails) will be staged under public:// — a web-accessible path. Use the default private://contentful, or move/delete users.json after the import.');
+    }
     $memberCount = empty($options['include-users'])
       ? NULL
       : $this->fetchUsers($config['spaceId'], $token, $config['exportDir']);
@@ -120,6 +123,23 @@ class ContentfulMigrateDrushCommands extends DrushCommands {
       return $real;
     }
     return rtrim($dir, '/');
+  }
+
+  /**
+   * Whether an export-dir option value points at a web-served location.
+   *
+   * Heuristic on the OPTION string (not the resolved real path): the public://
+   * scheme is always web-served; anything else (private://, temporary://, plain
+   * server paths) is treated as non-web. Plain paths under the docroot are not
+   * detectable portably from a Drush command — the README documents the
+   * operator's responsibility there.
+   *
+   * @internal
+   *   Public + static only so the pure predicate is unit-testable without
+   *   reflection; not part of any supported API.
+   */
+  public static function isWebAccessibleExportDir(string $exportDirOption): bool {
+    return str_starts_with($exportDirOption, 'public://');
   }
 
   /**
