@@ -108,6 +108,8 @@ the Parser throw at parse time (`InvalidArgumentException`) — so the plugin
 pre-sanitizes the AST first, dropping (and logging) only the unknown node and
 keeping the rest of the body.
 
+Design rationale for the Rich Text pipeline: [docs/architecture-notes.md](docs/architecture-notes.md).
+
 This module owns the full renderer list: custom `NodeRenderer`s resolve `sys.id`
 → Drupal entity via the migrate map and emit clean embed tokens, ending in a
 **logging** catch-all that never silently empties, with graceful degradation on
@@ -164,6 +166,32 @@ non-standard source field names work; with a private files scheme the URL is
 `media`/`file` — or for an asset that cannot resolve to a local file (not
 migrated, since deleted, oEmbed remote video) — the node degrades exactly as
 above: link text kept, dead link dropped, loss logged.
+
+Plain `hyperlink` nodes (a link to an external URI) are **scheme-guarded**
+before they reach the body field. Only `https`, `http`, `mailto`, `tel`, and
+schemeless URIs (relative paths, fragment anchors) emit an `<a href>`; any
+other scheme — `javascript:`, `data:`, `vbscript:`, … — is rejected at
+migration time, keeping the visible link text and dropping the dangerous
+anchor (logged). This stops a malicious Contentful entry from writing an
+executable href into stored Drupal HTML, where a lax text format or a
+decoupled/JSON:API consumer would get no render-time protection.
+
+### Node-type coverage
+
+The module owns a custom renderer for every embed and hyperlink node type, so
+none falls through to the library's Drupal-wrong defaults:
+
+| Node type | Renderer | Output |
+|---|---|---|
+| `embedded-entry-block`, `embedded-entry-inline` | DrupalEmbeddedEntryBlock / DrupalEmbeddedEntryInline | `<drupal-entity-embed>` token |
+| `embedded-asset-block`, `embedded-asset-inline` | DrupalEmbeddedAssetBlock / DrupalEmbeddedAssetInline | `<drupal-media>` token |
+| `entry-hyperlink` | DrupalEntryHyperlink | anchor to the entity's canonical path |
+| `asset-hyperlink` | DrupalAssetHyperlink | anchor to the migrated file's URL |
+| `hyperlink` | DrupalHyperlink | scheme-guarded `<a href>` (allowlist above) |
+
+The inline embed renderers exist because the library default emits visible
+`Entry#<id>` / `Asset#<id>` placeholder text for inline embeds — silent
+content corruption for any space that uses them.
 
 ## Installation
 
@@ -333,6 +361,10 @@ under a standard `drush migrate:import`, but a logged-in admin running
 imports through a UI (e.g. migrate_tools) would own them. Neither path is
 ever silently attributed to uid 1. The staged-file → stubs → attribution
 chain, including both degrades, is kernel-tested.
+
+If you override `--export-dir` to a web-served location (e.g. `public://`),
+the command warns: `users.json` contains member emails and
+must not be left web-accessible.
 
 ## What's included
 

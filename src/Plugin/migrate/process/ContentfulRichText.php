@@ -12,9 +12,11 @@ use Drupal\contentful_migration\RichText\ContentfulEmbedResolver;
 use Drupal\contentful_migration\RichText\ContentfulEmbedResolverInterface;
 use Drupal\contentful_migration\RichText\DrupalAssetHyperlink;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedAssetBlock;
+use Drupal\contentful_migration\RichText\DrupalEmbeddedAssetInline;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedEntryBlock;
 use Drupal\contentful_migration\RichText\DrupalEmbeddedEntryInline;
 use Drupal\contentful_migration\RichText\DrupalEntryHyperlink;
+use Drupal\contentful_migration\RichText\DrupalHyperlink;
 use Drupal\contentful_migration\RichText\SysIdLinkResolver;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -155,32 +157,37 @@ class ContentfulRichText extends ProcessPluginBase implements ContainerFactoryPl
       return '';
     }
 
-    // Pushed renderers take front priority, overriding the library defaults for
-    // the embed and inline-hyperlink node types; all other nodes use the
-    // library's renderers.
+    // These renderers take front priority, overriding the library defaults for
+    // the embed and hyperlink node types; all other nodes use the library's
+    // renderers. DrupalHyperlink scheme-guards plain external links (dropping
+    // javascript:/data: hrefs); the inline embed renderers stop the library's
+    // visible Entry#/Asset# placeholders from reaching migrated bodies.
     $renderer = new Renderer([
       new DrupalEmbeddedEntryBlock($this->resolver, $this->logger),
       new DrupalEmbeddedEntryInline($this->resolver, $this->logger),
       new DrupalEmbeddedAssetBlock($this->resolver, $this->logger),
+      new DrupalEmbeddedAssetInline($this->resolver, $this->logger),
       new DrupalEntryHyperlink(
         $this->resolver,
         $this->entityRepository,
         $this->logger,
       ),
       new DrupalAssetHyperlink($this->logger, $this->assetUrlResolver),
+      new DrupalHyperlink($this->logger),
     ]);
 
     return $renderer->render($node);
   }
 
   /**
-   * Strips nodes the library can't parse, so one unknown node degrades to a
-   * localized drop instead of throwing out the whole body.
+   * Strips nodes the library can't parse so one bad node is a localized drop.
    *
-   * The contentful/rich-text Parser throws on any unmapped nodeType. Removing
-   * the offending node (and its subtree) and logging it keeps every sibling
-   * renderable. Returns the filtered node, or NULL if the node itself is
-   * unknown (the caller drops it). Marks are not sanitized — only node types.
+   * The contentful/rich-text Parser throws on any unmapped nodeType, which
+   * would empty the whole body. Removing the offending node (and its subtree)
+   * and logging it keeps every sibling renderable, so one unknown node degrades
+   * to a localized drop instead of throwing out the whole body. Returns the
+   * filtered node, or NULL if the node itself is unknown (the caller drops it).
+   * Marks are not sanitized — only node types.
    */
   private function sanitizeAst(array $node): ?array {
     $type = $node['nodeType'] ?? NULL;

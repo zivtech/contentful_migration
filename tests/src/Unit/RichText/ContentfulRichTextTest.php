@@ -34,6 +34,57 @@ class ContentfulRichTextTest extends UnitTestCase {
   public const REAL_INLINE_ENTRY_SYS_ID = '1Tv28k2hEXIfgASOY9XyIP';
 
   /**
+   * Synthetic embedded-asset-inline sys.id (no real inline-asset fixture).
+   */
+  public const INLINE_ASSET_SYS_ID = '7pfE1GW8MNgYGTdRYJ8lWr';
+
+  /**
+   * A resolver returning a canned reference for one Asset sys.id, else NULL.
+   */
+  private function assetResolver(string $matchId, ?array $resolved): ContentfulEmbedResolverInterface {
+    return new class($matchId, $resolved) implements ContentfulEmbedResolverInterface {
+
+      public function __construct(
+        private readonly string $matchId,
+        private readonly ?array $resolved,
+      ) {}
+
+      /**
+       * {@inheritdoc}
+       */
+      public function resolve(string $sysId, string $linkType): ?array {
+        return ($sysId === $this->matchId && $linkType === 'Asset') ? $this->resolved : NULL;
+      }
+
+    };
+  }
+
+  /**
+   * Builds a single-paragraph document wrapping one embedded-asset-inline node.
+   */
+  private function inlineAssetAst(string $sysId): array {
+    return [
+      'nodeType' => 'document',
+      'data' => [],
+      'content' => [
+        [
+          'nodeType' => 'paragraph',
+          'data' => [],
+          'content' => [
+            ['nodeType' => 'text', 'value' => 'before ', 'marks' => [], 'data' => []],
+            [
+              'nodeType' => 'embedded-asset-inline',
+              'data' => ['target' => ['sys' => ['id' => $sysId, 'type' => 'Link', 'linkType' => 'Asset']]],
+              'content' => [],
+            ],
+            ['nodeType' => 'text', 'value' => ' after', 'marks' => [], 'data' => []],
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Builds a capturing logger whose records are assertable in tests.
    */
   private function makeLogger(): AbstractLogger {
@@ -225,6 +276,53 @@ class ContentfulRichTextTest extends UnitTestCase {
     $this->assertNotEmpty(
       array_filter($logger->records, fn($r) => str_contains($r, 'Unresolved embedded entry')),
       'Unresolved embed must be logged.',
+    );
+  }
+
+  /**
+   * A resolvable embedded-asset-inline emits a drupal-media token.
+   *
+   * The library default would emit a visible `Asset#<id>` placeholder; the
+   * DrupalEmbeddedAssetInline renderer overrides it and the raw sys.id must not
+   * survive to output.
+   */
+  public function testResolvesInlineEmbeddedAsset(): void {
+    $resolver = $this->assetResolver(
+      self::INLINE_ASSET_SYS_ID,
+      ['entity_type' => 'media', 'uuid' => 'uuid-inline-asset'],
+    );
+
+    $html = $this->transform(
+      $this->makePlugin($resolver, $this->makeLogger()),
+      $this->inlineAssetAst(self::INLINE_ASSET_SYS_ID),
+    );
+
+    $this->assertStringContainsString(
+      '<drupal-media data-entity-type="media" data-entity-uuid="uuid-inline-asset">',
+      $html,
+      'An inline-embedded asset must resolve to a drupal-media token.',
+    );
+    $this->assertStringNotContainsString('Asset#', $html, 'The library placeholder must be overridden.');
+    $this->assertStringNotContainsString(self::INLINE_ASSET_SYS_ID, $html, 'The raw sys.id must not survive.');
+  }
+
+  /**
+   * An unresolvable embedded-asset-inline logs, emits nothing, no Asset# leak.
+   */
+  public function testUnresolvedInlineEmbeddedAssetOmits(): void {
+    $logger = $this->makeLogger();
+    $resolver = $this->assetResolver(self::INLINE_ASSET_SYS_ID, NULL);
+
+    $html = $this->transform(
+      $this->makePlugin($resolver, $logger),
+      $this->inlineAssetAst(self::INLINE_ASSET_SYS_ID),
+    );
+
+    $this->assertStringNotContainsString('drupal-media', $html, 'Unresolved inline asset must emit nothing.');
+    $this->assertStringNotContainsString('Asset#', $html);
+    $this->assertNotEmpty(
+      array_filter($logger->records, fn($r) => str_contains($r, 'Unresolved inline embedded asset')),
+      'Unresolved inline asset must be logged.',
     );
   }
 
